@@ -116,7 +116,7 @@ class _ChatSheetState extends State<ChatSheet> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send, color: Colors.white),
+                  icon: const Icon(Icons.send, color: Colors.blue),
                   onPressed: _sendMessage,
                 ),
               ],
