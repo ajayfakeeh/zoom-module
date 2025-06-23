@@ -63,12 +63,19 @@ class _ChatSheetState extends State<ChatSheet> {
     }
   }
 
-  void _sendMessage() async {
+  /*void _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     await zoom.chatHelper.sendChatToAll(text);
     setState(() => messages.add("Me: $text"));
     _controller.clear();
+  }*/
+
+  void _sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    await zoom.chatHelper.sendChatToAll(text);
+    _controller.clear(); // Let the message come through event
   }
 
   @override
