@@ -110,7 +110,7 @@ class _ChatSheetState extends State<ChatSheet> {
                     decoration: const InputDecoration(
                       hintText: "Type a message",
                       filled: true,
-                      fillColor: Colors.white24,
+                      fillColor: Colors.blue,
                       border: OutlineInputBorder(),
                     ),
                   ),
