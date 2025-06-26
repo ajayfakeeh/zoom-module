@@ -281,37 +281,38 @@ class VideoGrid extends StatelessWidget {
     debugPrint('Active speaker: ${activeSpeaker.userId}, Total users: ${users.length}');
     
     final otherUsers = users.where((user) => user.userId != activeSpeaker.userId).toList();
-    
-    return Column(
+
+    return Stack(
       children: [
-        Expanded(
-          child: Container(
-            margin: EdgeInsets.only(bottom: otherUsers.isNotEmpty ? 8 : 0),
-            child: _VideoTile(user: activeSpeaker, isMainView: true),
-          ),
+        // Main active speaker video takes full space
+        Positioned.fill(
+          child: _VideoTile(user: activeSpeaker, isMainView: true),
         ),
+        // Overlay other users' videos at top-right corner
         if (otherUsers.isNotEmpty)
-          Container(
-            height: 120,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: otherUsers.length,
-              itemBuilder: (context, index) => Container(
-                width: 90,
-                margin: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () {
-                    // Manually set this user as active speaker when tapped
-                    debugPrint('Manually switching to user: ${otherUsers[index].userId}');
-                    onSpeakerChange(otherUsers[index].userId);
-                  },
-                  child: _VideoTile(user: otherUsers[index], isMainView: false),
-                ),
-              ),
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: otherUsers.asMap().entries.map((entry) {
+                int index = entry.key;
+                ZoomVideoSdkUser user = entry.value;
+                return Container(
+                  margin: EdgeInsets.only(bottom: 8),
+                  width: 90,
+                  height: 120,
+                  child: GestureDetector(
+                    onTap: () {
+                      debugPrint('Manually switching to user: ${user.userId}');
+                      onSpeakerChange(user.userId);
+                    },
+                    child: _VideoTile(user: user, isMainView: false),
+                  ),
+                );
+              }).toList(),
             ),
           ),
-        const SizedBox(height: 80),
       ],
     );
   }
