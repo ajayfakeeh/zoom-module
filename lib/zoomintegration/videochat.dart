@@ -411,7 +411,6 @@ class ControlBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double circleButtonSize = 40.0;
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -481,8 +480,8 @@ Widget _buildCircleIconButton({
         customBorder: const CircleBorder(),
         onTap: onPressed,
         child: Container(
-          width: circleButtonSize + 20,
-          height: circleButtonSize + 20,
+          width: 30,
+          height: 30,
           alignment: Alignment.center,
           child: Tooltip(
             message: tooltip ?? '',
