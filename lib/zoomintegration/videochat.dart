@@ -493,7 +493,7 @@ class ControlBar extends StatelessWidget {
               message: tooltip ?? '',
               child: Icon(
                 icon,
-                size: circleButtonSize,
+                size: 28.0,
                 color: iconColor,
               ),
             ),
