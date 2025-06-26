@@ -411,6 +411,8 @@ class ControlBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double circleButtonSize = 40.0;
+
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
