@@ -411,6 +411,10 @@ class ControlBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final double circleButtonSize = 28.0; // icon size inside the circle
+    final double circleButtonPadding = 16.0; // padding around the icon for circle size
+
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
@@ -418,52 +422,82 @@ class ControlBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            IconButton(
-              onPressed: toggleAudio,
-              icon: Icon(isMuted ? Icons.mic_off : Icons.mic),
-              iconSize: circleButtonSize,
+            _buildCircleIconButton(
+              icon: isMuted ? Icons.mic_off : Icons.mic,
+              iconColor: Colors.black,
               tooltip: isMuted ? "Unmute" : "Mute",
-              color: Colors.white,
+              onPressed: toggleAudio,
             ),
-            IconButton(
+            _buildCircleIconButton(
+              icon: isVideoOn ? Icons.videocam : Icons.videocam_off,
+              iconColor: Colors.black,
+              tooltip: isVideoOn ? "Turn Video Off" : "Turn Video On",
               onPressed: toggleVideo,
-              iconSize: circleButtonSize,
-              icon: Icon(
-                isVideoOn ? Icons.videocam : Icons.videocam_off,
-                color: Colors.white,
-              ),
             ),
-            IconButton(
-              onPressed: switchCamera,
-              iconSize: circleButtonSize,
-              icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
+            _buildCircleIconButton(
+              icon: Icons.flip_camera_ios,
+              iconColor: Colors.black,
               tooltip: "Switch Camera",
+              onPressed: switchCamera,
             ),
-            IconButton(
-              onPressed: toggleScreenShare,
-              iconSize: circleButtonSize,
-              icon: Icon(
-                isScreenSharing ? Icons.stop_screen_share : Icons.screen_share,
-                color: isScreenSharing ? Colors.red : Colors.white,
-              ),
+            _buildCircleIconButton(
+              icon: isScreenSharing ? Icons.stop_screen_share : Icons.screen_share,
+              iconColor: isScreenSharing ? Colors.red : Colors.black,
               tooltip: isScreenSharing ? "Stop Sharing" : "Share Screen",
+              onPressed: toggleScreenShare,
             ),
-            IconButton(
+            _buildCircleIconButton(
+              icon: Icons.call_end,
+              iconColor: Colors.red,
+              tooltip: "Leave Call",
               onPressed: leaveSession,
-              iconSize: circleButtonSize,
-              icon: const Icon(Icons.call_end, color: Colors.red),
             ),
-            IconButton(
+            _buildCircleIconButton(
+              icon: Icons.chat,
+              iconColor: Colors.black,
+              tooltip: "Chat",
               onPressed: () {
                 showModalBottomSheet(
                   context: context,
                   builder: (context) => const ChatSheet(),
                 );
               },
-              iconSize: circleButtonSize,
-              icon: const Icon(Icons.chat, color: Colors.white),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircleIconButton({
+    required IconData icon,
+    required Color iconColor,
+    required VoidCallback onPressed,
+    String? tooltip,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Material(
+        color: Colors.white,
+        shape: const CircleBorder(),
+        elevation: 4,
+        shadowColor: Colors.black45,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onPressed,
+          child: Container(
+            width: circleButtonSize + circleButtonPadding,
+            height: circleButtonSize + circleButtonPadding,
+            alignment: Alignment.center,
+            child: Tooltip(
+              message: tooltip ?? '',
+              child: Icon(
+                icon,
+                size: circleButtonSize,
+                color: iconColor,
+              ),
+            ),
+          ),
         ),
       ),
     );
