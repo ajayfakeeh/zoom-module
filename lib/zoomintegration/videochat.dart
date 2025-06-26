@@ -418,54 +418,76 @@ class ControlBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            IconButton(
+            _buildCircleIconButton(
+              icon: Icon(isMuted ? Icons.mic_off : Icons.mic, color: Colors.black),
               onPressed: toggleAudio,
-              icon: Icon(isMuted ? Icons.mic_off : Icons.mic),
-              iconSize: circleButtonSize,
               tooltip: isMuted ? "Unmute" : "Mute",
-              color: Colors.white,
             ),
-            IconButton(
+            _buildCircleIconButton(
+              icon: Icon(isVideoOn ? Icons.videocam : Icons.videocam_off, color: Colors.black),
               onPressed: toggleVideo,
-              iconSize: circleButtonSize,
-              icon: Icon(
-                isVideoOn ? Icons.videocam : Icons.videocam_off,
-                color: Colors.white,
-              ),
+              tooltip: isVideoOn ? "Turn Video Off" : "Turn Video On",
             ),
-            IconButton(
+            _buildCircleIconButton(
+              icon: const Icon(Icons.flip_camera_ios, color: Colors.black),
               onPressed: switchCamera,
-              iconSize: circleButtonSize,
-              icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
               tooltip: "Switch Camera",
             ),
-            IconButton(
-              onPressed: toggleScreenShare,
-              iconSize: circleButtonSize,
+            _buildCircleIconButton(
               icon: Icon(
                 isScreenSharing ? Icons.stop_screen_share : Icons.screen_share,
-                color: isScreenSharing ? Colors.red : Colors.white,
+                color: isScreenSharing ? Colors.red : Colors.black,
               ),
+              onPressed: toggleScreenShare,
               tooltip: isScreenSharing ? "Stop Sharing" : "Share Screen",
             ),
-            IconButton(
-              onPressed: leaveSession,
-              iconSize: circleButtonSize,
+            _buildCircleIconButton(
               icon: const Icon(Icons.call_end, color: Colors.red),
+              onPressed: leaveSession,
+              tooltip: "Leave Call",
             ),
-            IconButton(
+            _buildCircleIconButton(
+              icon: const Icon(Icons.chat, color: Colors.black),
               onPressed: () {
                 showModalBottomSheet(
                   context: context,
                   builder: (context) => const ChatSheet(),
                 );
               },
-              iconSize: circleButtonSize,
-              icon: const Icon(Icons.chat, color: Colors.white),
+              tooltip: "Chat",
             ),
           ],
         ),
       ),
     );
   }
+}
+
+Widget _buildCircleIconButton({
+  required Widget icon,
+  required VoidCallback onPressed,
+  String? tooltip,
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 6),
+    child: Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 4,
+      shadowColor: Colors.black45,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: Container(
+          width: circleButtonSize + 20,
+          height: circleButtonSize + 20,
+          alignment: Alignment.center,
+          child: Tooltip(
+            message: tooltip ?? '',
+            child: icon,
+          ),
+        ),
+      ),
+    ),
+  );
 }
