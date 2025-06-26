@@ -486,8 +486,8 @@ class ControlBar extends StatelessWidget {
           customBorder: const CircleBorder(),
           onTap: onPressed,
           child: Container(
-            width: circleButtonSize + circleButtonPadding,
-            height: circleButtonSize + circleButtonPadding,
+            width: 28.0 + 16.0,
+            height: 28.0 + 16.0,
             alignment: Alignment.center,
             child: Tooltip(
               message: tooltip ?? '',
