@@ -11,10 +11,20 @@ class ZoomLauncher {
     required Map<String, String> sessionDetails,
   }) async {
     var zoom = ZoomVideoSdk();
-    InitConfig initConfig = InitConfig(domain: "zoom.us", enableLog: true);
-
-    String result = await zoom.initSdk(initConfig);
-    print("result" + result);
+    
+    try {
+      InitConfig initConfig = InitConfig(domain: "zoom.us", enableLog: true);
+      String result = await zoom.initSdk(initConfig);
+      print("SDK Init result: $result");
+      
+      if (result != "Success" && result != "SDK is already initialized.") {
+        throw Exception("Zoom SDK init failed: $result");
+      }
+    } catch (e) {
+      print("SDK initialization error: $e");
+      // Continue anyway - SDK might already be initialized
+    }
+    
     return Videochat(
       appKey: appKey,
       appSecret: appSecret,

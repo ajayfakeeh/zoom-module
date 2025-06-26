@@ -14,10 +14,11 @@ buildscript {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 33
+    namespace = 'com.dsfh.zoom_module'
+    compileSdk = 33
     
     defaultConfig {
-        minSdkVersion 21
+        minSdk = 21
     }
 }
 

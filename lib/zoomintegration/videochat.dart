@@ -8,6 +8,7 @@ import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
 import 'package:flutter_zoom_videosdk/flutter_zoom_view.dart' as zoom_view;
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_event_listener.dart';
 import 'package:zoom_module/zoomintegration/utils/jwt.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'ChatSheet.dart';
 import 'config.dart';
@@ -34,9 +35,11 @@ class _VideochatState extends State<Videochat> {
   bool isInSession = false;
   List<StreamSubscription> subscriptions = [];
   List<ZoomVideoSdkUser> users = [];
+  String? activeSpeakerId;
   bool isMuted = true;
   bool isVideoOn = false;
   bool isLoading = false;
+  bool isScreenSharing = false;
 
   @override
   void initState() {
@@ -44,6 +47,12 @@ class _VideochatState extends State<Videochat> {
     if (Platform.isAndroid) {
       _checkPermissions();
     }
+  }
+
+  @override
+  void dispose() {
+    handleLeaveSession();
+    super.dispose();
   }
 
   Future<void> _checkPermissions() async {
@@ -60,6 +69,8 @@ class _VideochatState extends State<Videochat> {
     final remoteUsers = await zoom.session.getRemoteUsers() ?? [];
     final isMutedState = await mySelf.audioStatus?.isMuted() ?? true;
     final isVideoOnState = await mySelf.videoStatus?.isOn() ?? false;
+    WakelockPlus.enable();
+    
     setState(() {
       isInSession = true;
       isLoading = false;
@@ -97,20 +108,30 @@ class _VideochatState extends State<Videochat> {
     });
   }
 
+  _handleActiveSpeakerChange(data) {
+    debugPrint('Active speaker changed: ${data['userId']}');
+    setState(() {
+      activeSpeakerId = data['userId'];
+    });
+  }
+
+  _handleShareChange(data) {
+    debugPrint('Share status changed: $data');
+    setState(() {
+      isScreenSharing = data['isSharing'] ?? false;
+    });
+  }
+
   _setupEventListeners() {
     subscriptions = [
       eventListener.addListener(EventType.onSessionJoin, _handleSessionJoin),
       eventListener.addListener(EventType.onSessionLeave, handleLeaveSession),
       eventListener.addListener(EventType.onUserJoin, _updateUserList),
       eventListener.addListener(EventType.onUserLeave, _updateUserList),
-      eventListener.addListener(
-        EventType.onUserVideoStatusChanged,
-        _handleVideoChange,
-      ),
-      eventListener.addListener(
-        EventType.onUserAudioStatusChanged,
-        _handleAudioChange,
-      ),
+      eventListener.addListener(EventType.onUserVideoStatusChanged, _handleVideoChange),
+      eventListener.addListener(EventType.onUserAudioStatusChanged, _handleAudioChange),
+      eventListener.addListener(EventType.onUserActiveAudioChanged, _handleActiveSpeakerChange),
+      eventListener.addListener(EventType.onShareContentChanged, _handleShareChange),
     ];
   }
 
@@ -141,14 +162,29 @@ class _VideochatState extends State<Videochat> {
     }
   }
 
-  handleLeaveSession([data]) {
-    setState(() {
-      isInSession = false;
-      isLoading = false;
-      users = [];
-    });
+  handleLeaveSession([data]) async {
+    WakelockPlus.disable();
+    
+    if (isInSession) {
+      try {
+        await zoom.leaveSession(false);
+      } catch (e) {
+        debugPrint('Error leaving session: $e');
+      }
+    }
+    
     for (var subscription in subscriptions) {
       subscription.cancel();
+    }
+    subscriptions.clear();
+    
+    if (mounted) {
+      setState(() {
+        isInSession = false;
+        isLoading = false;
+        users = [];
+        activeSpeakerId = null;
+      });
     }
   }
 
@@ -169,12 +205,38 @@ class _VideochatState extends State<Videochat> {
             else
               Stack(
                 children: [
-                  VideoGrid(users: users),
+                  VideoGrid(
+                    users: users, 
+                    activeSpeakerId: activeSpeakerId,
+                    onSpeakerChange: (userId) {
+                      setState(() {
+                        activeSpeakerId = userId;
+                      });
+                    },
+                  ),
                   ControlBar(
                     isMuted: isMuted,
                     isVideoOn: isVideoOn,
+                    isScreenSharing: isScreenSharing,
                     onLeaveSession: handleLeaveSession,
                   ),
+                  if (isInSession && users.isEmpty)
+                    Container(
+                      color: Colors.black54,
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(color: Colors.white),
+                            SizedBox(height: 16),
+                            Text(
+                              'Loading video...',
+                              style: TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
           ],
@@ -186,44 +248,97 @@ class _VideochatState extends State<Videochat> {
 
 class VideoGrid extends StatelessWidget {
   final List<ZoomVideoSdkUser> users;
+  final String? activeSpeakerId;
+  final Function(String) onSpeakerChange;
 
-  const VideoGrid({super.key, required this.users});
+  const VideoGrid({
+    super.key, 
+    required this.users, 
+    this.activeSpeakerId,
+    required this.onSpeakerChange,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (users.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: users.length <= 2 ? 1 : 2,
-        crossAxisSpacing: 2,
-        mainAxisSpacing: 2,
-      ),
-      itemCount: users.length,
-      itemBuilder: (context, index) => _VideoTile(user: users[index]),
+    
+    // Find active speaker - prioritize actual active speaker, then first user
+    ZoomVideoSdkUser activeSpeaker;
+    if (activeSpeakerId != null) {
+      try {
+        activeSpeaker = users.firstWhere((user) => user.userId == activeSpeakerId);
+      } catch (e) {
+        // If active speaker not found, use first user
+        activeSpeaker = users.first;
+      }
+    } else {
+      // No active speaker set, use first user
+      activeSpeaker = users.first;
+    }
+    
+    debugPrint('Active speaker: ${activeSpeaker.userId}, Total users: ${users.length}');
+    
+    final otherUsers = users.where((user) => user.userId != activeSpeaker.userId).toList();
+    
+    return Column(
+      children: [
+        Expanded(
+          child: Container(
+            margin: EdgeInsets.only(bottom: otherUsers.isNotEmpty ? 8 : 0),
+            child: _VideoTile(user: activeSpeaker, isMainView: true),
+          ),
+        ),
+        if (otherUsers.isNotEmpty)
+          Container(
+            height: 120,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: otherUsers.length,
+              itemBuilder: (context, index) => Container(
+                width: 90,
+                margin: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    // Manually set this user as active speaker when tapped
+                    debugPrint('Manually switching to user: ${otherUsers[index].userId}');
+                    onSpeakerChange(otherUsers[index].userId);
+                  },
+                  child: _VideoTile(user: otherUsers[index], isMainView: false),
+                ),
+              ),
+            ),
+          ),
+        const SizedBox(height: 80),
+      ],
     );
   }
 }
 
 class _VideoTile extends StatelessWidget {
   final ZoomVideoSdkUser user;
+  final bool isMainView;
 
-  const _VideoTile({required this.user});
+  const _VideoTile({required this.user, this.isMainView = false});
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.black,
-      child: SizedBox.expand(
-        child: zoom_view.View(
-          key: Key(user.userId),
-          creationParams: {
-            "userId": user.userId,
-            "videoAspect": VideoAspect.FullFilled,
-            "fullScreen": false,
-          },
+      borderRadius: isMainView ? null : BorderRadius.circular(8),
+      child: ClipRRect(
+        borderRadius: isMainView ? BorderRadius.zero : BorderRadius.circular(8),
+        child: SizedBox.expand(
+          child: zoom_view.View(
+            key: Key(user.userId),
+            creationParams: {
+              "userId": user.userId,
+              "videoAspect": VideoAspect.FullFilled,
+              "fullScreen": false,
+            },
+          ),
         ),
       ),
     );
@@ -233,6 +348,7 @@ class _VideoTile extends StatelessWidget {
 class ControlBar extends StatelessWidget {
   final bool isMuted;
   final bool isVideoOn;
+  final bool isScreenSharing;
   final double circleButtonSize = 40.0;
   final zoom = ZoomVideoSdk();
   final VoidCallback onLeaveSession;
@@ -241,6 +357,7 @@ class ControlBar extends StatelessWidget {
     super.key,
     required this.isMuted,
     required this.isVideoOn,
+    required this.isScreenSharing,
     required this.onLeaveSession,
   });
 
@@ -262,6 +379,30 @@ class ControlBar extends StatelessWidget {
         : await zoom.videoHelper.startVideo();
   }
 
+  Future switchCamera() async {
+    try {
+      // Pass null to switch to next available camera (front/back)
+      bool success = await zoom.videoHelper.switchCamera(null);
+      debugPrint('Camera switch success: $success');
+    } catch (e) {
+      debugPrint('Error switching camera: $e');
+    }
+  }
+
+  Future toggleScreenShare() async {
+    try {
+      if (isScreenSharing) {
+        String? result = await zoom.shareHelper.stopShare();
+        debugPrint('Stop screen share result: ${result ?? "Success"}');
+      } else {
+        await zoom.shareHelper.shareScreen();
+        debugPrint('Screen share started');
+      }
+    } catch (e) {
+      debugPrint('Error toggling screen share: $e');
+    }
+  }
+
   Future leaveSession() async {
     await zoom.leaveSession(false);
     onLeaveSession();
@@ -271,7 +412,8 @@ class ControlBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.bottomCenter,
-      child: FractionallySizedBox(
+      child: Container(
+        padding: const EdgeInsets.all(16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -291,6 +433,21 @@ class ControlBar extends StatelessWidget {
               ),
             ),
             IconButton(
+              onPressed: switchCamera,
+              iconSize: circleButtonSize,
+              icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
+              tooltip: "Switch Camera",
+            ),
+            IconButton(
+              onPressed: toggleScreenShare,
+              iconSize: circleButtonSize,
+              icon: Icon(
+                isScreenSharing ? Icons.stop_screen_share : Icons.screen_share,
+                color: isScreenSharing ? Colors.red : Colors.white,
+              ),
+              tooltip: isScreenSharing ? "Stop Sharing" : "Share Screen",
+            ),
+            IconButton(
               onPressed: leaveSession,
               iconSize: circleButtonSize,
               icon: const Icon(Icons.call_end, color: Colors.red),
@@ -299,13 +456,11 @@ class ControlBar extends StatelessWidget {
               onPressed: () {
                 showModalBottomSheet(
                   context: context,
-                  builder: (_) => ChatSheet(),
+                  builder: (context) => const ChatSheet(),
                 );
               },
-              icon: const Icon(Icons.chat_bubble_outline),
               iconSize: circleButtonSize,
-              color: Colors.white,
-              tooltip: "Open Chat",
+              icon: const Icon(Icons.chat, color: Colors.white),
             ),
           ],
         ),
