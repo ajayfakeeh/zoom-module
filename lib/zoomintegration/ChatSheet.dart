@@ -207,8 +207,10 @@ class _ChatSheetState extends State<ChatSheet> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.all(12),
-        height: 400,
+        // padding: const EdgeInsets.all(12),
+        // height: 400,
+        height: MediaQuery.of(context).size.height * 0.95,
+        padding: EdgeInsets.fromLTRB(12, 12, 12, MediaQuery.of(context).viewInsets.bottom + 12),
         child: Column(
           children: [
             const Text(
@@ -301,18 +303,18 @@ class _ChatSheetState extends State<ChatSheet> {
                       ),
                       child: Row(
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.image, color: Colors.blue),
-                            onPressed: _pickAndUploadImage,
-                          ),
                           Expanded(
                             child: TextField(
                               controller: _controller,
                               decoration: const InputDecoration(
-                                hintText: "Type a message",
+                                hintText: "Type something...",
                                 border: InputBorder.none,
                               ),
                             ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.image, color: Colors.blue),
+                            onPressed: _pickAndUploadImage,
                           ),
                         ],
                       ),
@@ -322,11 +324,16 @@ class _ChatSheetState extends State<ChatSheet> {
                   const SizedBox(width: 8),
 
                   // Send button outside
-                  CircleAvatar(
-                    backgroundColor: Colors.blue,
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white),
-                      onPressed: _sendMessage,
+                  Material(
+                    color: Colors.blue,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: _sendMessage,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: const Icon(Icons.send, color: Colors.white, size: 20),
+                      ),
                     ),
                   ),
                 ],
