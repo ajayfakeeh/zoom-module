@@ -47,6 +47,7 @@ class _VideochatState extends State<Videochat> {
     if (Platform.isAndroid) {
       _checkPermissions();
     }
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
   @override
