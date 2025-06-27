@@ -459,6 +459,8 @@ class ControlBar extends StatelessWidget {
               onPressed: () {
                 showModalBottomSheet(
                   context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
                   builder: (context) => const ChatSheet(),
                 );
               },
