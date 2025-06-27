@@ -282,38 +282,52 @@ class VideoGrid extends StatelessWidget {
     
     final otherUsers = users.where((user) => user.userId != activeSpeaker.userId).toList();
 
-    return Stack(
-      children: [
-        // Main active speaker video takes full space
-        Positioned.fill(
-          child: _VideoTile(user: activeSpeaker, isMainView: true),
-        ),
-        // Overlay other users' videos at top-right corner
-        if (otherUsers.isNotEmpty)
-          Positioned(
-            top: 16,
-            right: 16,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: otherUsers.asMap().entries.map((entry) {
-                int index = entry.key;
-                ZoomVideoSdkUser user = entry.value;
-                return Container(
-                  margin: EdgeInsets.only(bottom: 8),
-                  width: 90,
-                  height: 120,
-                  child: GestureDetector(
-                    onTap: () {
-                      debugPrint('Manually switching to user: ${user.userId}');
-                      onSpeakerChange(user.userId);
-                    },
-                    child: _VideoTile(user: user, isMainView: false),
-                  ),
-                );
-              }).toList(),
-            ),
+    return SafeArea(
+      child: Stack(
+        children: [
+          // Full screen active speaker video
+          Positioned.fill(
+            child: _VideoTile(user: activeSpeaker, isMainView: true),
           ),
-      ],
+
+          // Top-right overlay of other users
+          if (otherUsers.isNotEmpty)
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: otherUsers.map((user) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    width: 90,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: GestureDetector(
+                      onTap: () {
+                        debugPrint('Manually switching to user: ${user.userId}');
+                        onSpeakerChange(user.userId);
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: _VideoTile(user: user, isMainView: false),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -423,6 +437,24 @@ class ControlBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildCircleIconButton(
+              icon: Icons.chat,
+              iconColor: Colors.blue,
+              tooltip: "Chat",
+              onPressed: () {
+                showModalBottomSheet(
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (context) => const ChatSheet(),
+                );
+              },
+            ),
+            _buildCircleIconButton(
               icon: isMuted ? Icons.mic_off : Icons.mic,
               iconColor: Colors.blue,
               tooltip: isMuted ? "Unmute" : "Mute",
@@ -446,29 +478,11 @@ class ControlBar extends StatelessWidget {
               tooltip: isScreenSharing ? "Stop Sharing" : "Share Screen",
               onPressed: toggleScreenShare,
             ),
-            _buildCircleWhiteButton(
+            _buildCircleRedButton(
               icon: Icons.call_end,
               iconColor: Colors.white,
               tooltip: "Leave Call",
               onPressed: leaveSession,
-            ),
-            _buildCircleIconButton(
-              icon: Icons.chat,
-              iconColor: Colors.blue,
-              tooltip: "Chat",
-              onPressed: () {
-                showModalBottomSheet(
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (context) => const ChatSheet(),
-                );
-              },
             ),
           ],
         ),
@@ -510,7 +524,7 @@ class ControlBar extends StatelessWidget {
     );
   }
 
-  Widget _buildCircleWhiteButton({
+  Widget _buildCircleRedButton({
     required IconData icon,
     required Color iconColor,
     required VoidCallback onPressed,
