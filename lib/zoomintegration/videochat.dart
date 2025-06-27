@@ -297,6 +297,27 @@ class VideoGrid extends StatelessWidget {
                 child: _VideoTile(user: activeSpeaker, isMainView: true),
               ),
 
+              // ✅ Top-left user name overlay
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    activeSpeaker.userName ?? "Unknown",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+
               // Small user tiles in top-right corner
               if (otherUsers.isNotEmpty)
                 Positioned(
