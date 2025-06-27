@@ -424,37 +424,37 @@ class ControlBar extends StatelessWidget {
           children: [
             _buildCircleIconButton(
               icon: isMuted ? Icons.mic_off : Icons.mic,
-              iconColor: Colors.black,
+              iconColor: Colors.blue,
               tooltip: isMuted ? "Unmute" : "Mute",
               onPressed: toggleAudio,
             ),
             _buildCircleIconButton(
               icon: isVideoOn ? Icons.videocam : Icons.videocam_off,
-              iconColor: Colors.black,
+              iconColor: Colors.blue,
               tooltip: isVideoOn ? "Turn Video Off" : "Turn Video On",
               onPressed: toggleVideo,
             ),
             _buildCircleIconButton(
               icon: Icons.flip_camera_ios,
-              iconColor: Colors.black,
+              iconColor: Colors.blue,
               tooltip: "Switch Camera",
               onPressed: switchCamera,
             ),
             _buildCircleIconButton(
               icon: isScreenSharing ? Icons.stop_screen_share : Icons.screen_share,
-              iconColor: isScreenSharing ? Colors.red : Colors.black,
+              iconColor: isScreenSharing ? Colors.red : Colors.blue,
               tooltip: isScreenSharing ? "Stop Sharing" : "Share Screen",
               onPressed: toggleScreenShare,
             ),
-            _buildCircleIconButton(
+            _buildCircleWhiteButton(
               icon: Icons.call_end,
-              iconColor: Colors.red,
+              iconColor: Colors.white,
               tooltip: "Leave Call",
               onPressed: leaveSession,
             ),
             _buildCircleIconButton(
               icon: Icons.chat,
-              iconColor: Colors.black,
+              iconColor: Colors.blue,
               tooltip: "Chat",
               onPressed: () {
                 showModalBottomSheet(
@@ -479,6 +479,40 @@ class ControlBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Material(
         color: Colors.white,
+        shape: const CircleBorder(),
+        elevation: 4,
+        shadowColor: Colors.black45,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onPressed,
+          child: Container(
+            width: 28.0 + 16.0,
+            height: 28.0 + 16.0,
+            alignment: Alignment.center,
+            child: Tooltip(
+              message: tooltip ?? '',
+              child: Icon(
+                icon,
+                size: 28.0,
+                color: iconColor,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircleWhiteButton({
+    required IconData icon,
+    required Color iconColor,
+    required VoidCallback onPressed,
+    String? tooltip,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Material(
+        color: Colors.red,
         shape: const CircleBorder(),
         elevation: 4,
         shadowColor: Colors.black45,
