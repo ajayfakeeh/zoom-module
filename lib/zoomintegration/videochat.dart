@@ -260,6 +260,9 @@ class VideoGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     if (users.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -283,50 +286,45 @@ class VideoGrid extends StatelessWidget {
     final otherUsers = users.where((user) => user.userId != activeSpeaker.userId).toList();
 
     return SafeArea(
-      child: Stack(
-        children: [
-          // Full screen active speaker video
-          Positioned.fill(
-            child: _VideoTile(user: activeSpeaker, isMainView: true),
-          ),
-
-          // Top-right overlay of other users
-          if (otherUsers.isNotEmpty)
-            Positioned(
-              top: 16,
-              right: 16,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: otherUsers.map((user) {
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    width: 90,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: GestureDetector(
-                      onTap: () {
-                        debugPrint('Manually switching to user: ${user.userId}');
-                        onSpeakerChange(user.userId);
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: _VideoTile(user: user, isMainView: false),
-                      ),
-                    ),
-                  );
-                }).toList(),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SizedBox(
+          height: screenHeight,
+          width: screenWidth,
+          child: Stack(
+            children: [
+              // Fullscreen active speaker
+              Positioned.fill(
+                child: _VideoTile(user: activeSpeaker, isMainView: true),
               ),
-            ),
-        ],
+
+              // Small user tiles in top-right corner
+              if (otherUsers.isNotEmpty)
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: otherUsers.asMap().entries.map((entry) {
+                      ZoomVideoSdkUser user = entry.value;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        width: 90,
+                        height: 120,
+                        child: GestureDetector(
+                          onTap: () {
+                            debugPrint('Manually switching to user: ${user.userId}');
+                            onSpeakerChange(user.userId);
+                          },
+                          child: _VideoTile(user: user, isMainView: false),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
