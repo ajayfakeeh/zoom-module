@@ -262,7 +262,7 @@ class VideoGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     if (users.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -285,9 +285,8 @@ class VideoGrid extends StatelessWidget {
     
     final otherUsers = users.where((user) => user.userId != activeSpeaker.userId).toList();
 
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.black,
+    return Scaffold(
+        backgroundColor: Colors.white,
         body: SizedBox(
           height: screenHeight,
           width: screenWidth,
@@ -325,7 +324,6 @@ class VideoGrid extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }
