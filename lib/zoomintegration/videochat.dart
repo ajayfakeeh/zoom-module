@@ -458,9 +458,14 @@ class ControlBar extends StatelessWidget {
               tooltip: "Chat",
               onPressed: () {
                 showModalBottomSheet(
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
                   context: context,
                   isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
                   builder: (context) => const ChatSheet(),
                 );
               },
