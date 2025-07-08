@@ -257,6 +257,13 @@ class _VideochatState extends State<Videochat> {
                     isVideoOn: isVideoOn,
                     isScreenSharing: isScreenSharing,
                     onLeaveSession: handleLeaveSession,
+                    onStateUpdate: (muted, video, screen) {
+                      setState(() {
+                        isMuted = muted;
+                        isVideoOn = video;
+                        isScreenSharing = screen;
+                      });
+                    },
                   ),
                   if (isInSession && users.isEmpty)
                     Container(
@@ -456,6 +463,7 @@ class ControlBar extends StatefulWidget {
   final bool isVideoOn;
   final bool isScreenSharing;
   final VoidCallback onLeaveSession;
+  final Function(bool, bool, bool) onStateUpdate;
 
   const ControlBar({
     super.key,
@@ -463,6 +471,7 @@ class ControlBar extends StatefulWidget {
     required this.isVideoOn,
     required this.isScreenSharing,
     required this.onLeaveSession,
+    required this.onStateUpdate,
   });
 
   @override
@@ -500,9 +509,11 @@ class _ControlBarState extends State<ControlBar> {
     } else {
       await zoom.audioHelper.muteAudio(mySelf.userId);
     }
+    final newMuted = !isMuted;
     setState(() {
-      currentMuted = !isMuted;
+      currentMuted = newMuted;
     });
+    widget.onStateUpdate(newMuted, currentVideoOn, currentScreenSharing);
   }
 
   Future toggleVideo() async {
@@ -514,9 +525,11 @@ class _ControlBarState extends State<ControlBar> {
     } else {
       await zoom.videoHelper.startVideo();
     }
+    final newVideoOn = !isOn;
     setState(() {
-      currentVideoOn = !isOn;
+      currentVideoOn = newVideoOn;
     });
+    widget.onStateUpdate(currentMuted, newVideoOn, currentScreenSharing);
   }
 
   Future switchCamera() async {
