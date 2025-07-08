@@ -544,12 +544,7 @@ class ControlBar extends StatelessWidget {
                   context: context,
                   isScrollControlled: true,
                   builder: (context) => const ChatSheet(),
-                ).then((_) {
-                  // Force state refresh when chat is closed
-                  if (mounted) {
-                    setState(() {});
-                  }
-                });
+                );
               },
             ),
             _buildCircleIconButton(
