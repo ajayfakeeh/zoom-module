@@ -145,9 +145,13 @@ class _VideochatState extends State<Videochat> {
   }
 
   Future startSession() async {
-    if (isLoading || isInSession) return;
+    if (isLoading || isInSession) {
+      debugPrint('Session already loading or active');
+      return;
+    }
     
     setState(() => isLoading = true);
+    debugPrint('Starting new session...');
     
     try {
       // Clear any existing subscriptions before setting up new ones
@@ -183,7 +187,7 @@ class _VideochatState extends State<Videochat> {
   }
 
   handleLeaveSession([data]) async {
-    debugPrint('handleLeaveSession called');
+    debugPrint('handleLeaveSession called - isInSession: $isInSession, isLoading: $isLoading');
     WakelockPlus.disable();
     
     // Clear all subscriptions first
@@ -195,6 +199,7 @@ class _VideochatState extends State<Videochat> {
     if (isInSession) {
       try {
         await zoom.leaveSession(false);
+        debugPrint('Session left successfully');
       } catch (e) {
         debugPrint('Error leaving session: $e');
       }
@@ -211,6 +216,7 @@ class _VideochatState extends State<Videochat> {
         isVideoOn = false;
         isScreenSharing = false;
       });
+      debugPrint('Session state reset completed');
     }
   }
 
@@ -568,8 +574,8 @@ class _ControlBarState extends State<ControlBar> {
               icon: Icons.chat,
               iconColor: Colors.blue,
               tooltip: "Chat",
-              onPressed: () {
-                showModalBottomSheet(
+              onPressed: () async {
+                await showModalBottomSheet(
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.vertical(
@@ -580,6 +586,19 @@ class _ControlBarState extends State<ControlBar> {
                   isScrollControlled: true,
                   builder: (context) => const ChatSheet(),
                 );
+                
+                // Refresh all states after chat closes
+                if (mounted) {
+                  final mySelf = await zoom.session.getMySelf();
+                  if (mySelf != null) {
+                    final audioStatus = await mySelf.audioStatus?.isMuted() ?? true;
+                    final videoStatus = await mySelf.videoStatus?.isOn() ?? false;
+                    setState(() {
+                      currentMuted = audioStatus;
+                      currentVideoOn = videoStatus;
+                    });
+                  }
+                }
               },
             ),
             _buildCircleIconButton(
