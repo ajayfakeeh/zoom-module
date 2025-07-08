@@ -48,9 +48,7 @@ class _ChatSheetState extends State<ChatSheet> {
   void initState() {
     super.initState();
     _initMyUserId();
-    // Use a separate event listener instance to avoid conflicts
-    final chatEventListener = ZoomVideoSdkEventListener();
-    _chatSubscription = chatEventListener.addListener(
+    _chatSubscription = ZoomVideoSdkEventListener().addListener(
       EventType.onChatNewMessageNotify,
       _handleNewMessage,
     );
