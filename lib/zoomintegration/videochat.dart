@@ -257,6 +257,7 @@ class _VideochatState extends State<Videochat> {
                     isVideoOn: isVideoOn,
                     isScreenSharing: isScreenSharing,
                     onLeaveSession: handleLeaveSession,
+                    onStateRefresh: () => setState(() {}),
                   ),
                   if (isInSession && users.isEmpty)
                     Container(
@@ -460,6 +461,7 @@ class ControlBar extends StatelessWidget {
   final double circleButtonSize = 40.0;
   final zoom = ZoomVideoSdk();
   final VoidCallback onLeaveSession;
+  final VoidCallback onStateRefresh;
 
   ControlBar({
     super.key,
@@ -467,6 +469,7 @@ class ControlBar extends StatelessWidget {
     required this.isVideoOn,
     required this.isScreenSharing,
     required this.onLeaveSession,
+    required this.onStateRefresh,
   });
 
   Future toggleAudio() async {
@@ -544,12 +547,7 @@ class ControlBar extends StatelessWidget {
                   context: context,
                   isScrollControlled: true,
                   builder: (context) => const ChatSheet(),
-                ).then((_) {
-                  // Force state refresh when chat is closed
-                  if (mounted) {
-                    setState(() {});
-                  }
-                });
+                ).then((_) => onStateRefresh());
               },
             ),
             _buildCircleIconButton(
