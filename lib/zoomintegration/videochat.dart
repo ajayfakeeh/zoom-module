@@ -402,48 +402,46 @@ class _VideoTile extends StatelessWidget {
         borderRadius: isMainView ? BorderRadius.zero : BorderRadius.circular(8),
         child: SizedBox.expand(
           child: FutureBuilder<bool>(
+            key: Key('${user.userId}_${DateTime.now().millisecondsSinceEpoch}'),
             future: user.videoStatus?.isOn(),
             builder: (context, snapshot) {
               final isVideoOn = snapshot.data ?? false;
               
-              return Stack(
-                children: [
-                  if (isVideoOn)
-                    zoom_view.View(
-                      key: Key(user.userId),
-                      creationParams: {
-                        "userId": user.userId,
-                        "videoAspect": VideoAspect.FullFilled,
-                        "fullScreen": false,
-                      },
-                    )
-                  else
-                    Container(
-                      color: Colors.grey[800],
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.person,
-                              size: isMainView ? 80 : 40,
-                              color: Colors.white70,
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              user.userName ?? "Unknown",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: isMainView ? 18 : 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+              if (!isVideoOn) {
+                return Container(
+                  color: Colors.grey[800],
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.person,
+                          size: isMainView ? 80 : 40,
+                          color: Colors.white70,
                         ),
-                      ),
+                        SizedBox(height: 8),
+                        Text(
+                          user.userName ?? "Unknown",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: isMainView ? 18 : 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                ],
+                  ),
+                );
+              }
+              
+              return zoom_view.View(
+                key: Key('${user.userId}_video'),
+                creationParams: {
+                  "userId": user.userId,
+                  "videoAspect": VideoAspect.FullFilled,
+                  "fullScreen": false,
+                },
               );
             },
           ),
