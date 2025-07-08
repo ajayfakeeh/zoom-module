@@ -244,6 +244,7 @@ class _VideochatState extends State<Videochat> {
               Stack(
                 children: [
                   VideoGrid(
+                    key: ValueKey(users.length),
                     users: users, 
                     activeSpeakerId: activeSpeakerId,
                     onSpeakerChange: (userId) {
@@ -579,7 +580,12 @@ class _ControlBarState extends State<ControlBar> {
                   context: context,
                   isScrollControlled: true,
                   builder: (context) => const ChatSheet(),
-                );
+                ).then((_) {
+                  // Force video tiles refresh
+                  setState(() {
+                    users = List.from(users);
+                  });
+                });
               },
             ),
             _buildCircleIconButton(
