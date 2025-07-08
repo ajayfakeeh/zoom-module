@@ -453,15 +453,13 @@ class _VideoTile extends StatelessWidget {
   }
 }
 
-class ControlBar extends StatelessWidget {
+class ControlBar extends StatefulWidget {
   final bool isMuted;
   final bool isVideoOn;
   final bool isScreenSharing;
-  final double circleButtonSize = 40.0;
-  final zoom = ZoomVideoSdk();
   final VoidCallback onLeaveSession;
 
-  ControlBar({
+  const ControlBar({
     super.key,
     required this.isMuted,
     required this.isVideoOn,
@@ -469,22 +467,58 @@ class ControlBar extends StatelessWidget {
     required this.onLeaveSession,
   });
 
+  @override
+  State<ControlBar> createState() => _ControlBarState();
+}
+
+class _ControlBarState extends State<ControlBar> {
+  final zoom = ZoomVideoSdk();
+  late bool currentMuted;
+  late bool currentVideoOn;
+  late bool currentScreenSharing;
+
+  @override
+  void initState() {
+    super.initState();
+    currentMuted = widget.isMuted;
+    currentVideoOn = widget.isVideoOn;
+    currentScreenSharing = widget.isScreenSharing;
+  }
+
+  @override
+  void didUpdateWidget(ControlBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    currentMuted = widget.isMuted;
+    currentVideoOn = widget.isVideoOn;
+    currentScreenSharing = widget.isScreenSharing;
+  }
+
   Future toggleAudio() async {
     final mySelf = await zoom.session.getMySelf();
     if (mySelf?.audioStatus == null) return;
     final isMuted = await mySelf!.audioStatus!.isMuted();
-    isMuted
-        ? await zoom.audioHelper.unMuteAudio(mySelf.userId)
-        : await zoom.audioHelper.muteAudio(mySelf.userId);
+    if (isMuted) {
+      await zoom.audioHelper.unMuteAudio(mySelf.userId);
+    } else {
+      await zoom.audioHelper.muteAudio(mySelf.userId);
+    }
+    setState(() {
+      currentMuted = !isMuted;
+    });
   }
 
   Future toggleVideo() async {
     final mySelf = await zoom.session.getMySelf();
     if (mySelf?.videoStatus == null) return;
     final isOn = await mySelf!.videoStatus!.isOn();
-    isOn
-        ? await zoom.videoHelper.stopVideo()
-        : await zoom.videoHelper.startVideo();
+    if (isOn) {
+      await zoom.videoHelper.stopVideo();
+    } else {
+      await zoom.videoHelper.startVideo();
+    }
+    setState(() {
+      currentVideoOn = !isOn;
+    });
   }
 
   Future switchCamera() async {
@@ -499,13 +533,16 @@ class ControlBar extends StatelessWidget {
 
   Future toggleScreenShare() async {
     try {
-      if (isScreenSharing) {
+      if (currentScreenSharing) {
         String? result = await zoom.shareHelper.stopShare();
         debugPrint('Stop screen share result: ${result ?? "Success"}');
       } else {
         await zoom.shareHelper.shareScreen();
         debugPrint('Screen share started');
       }
+      setState(() {
+        currentScreenSharing = !currentScreenSharing;
+      });
     } catch (e) {
       debugPrint('Error toggling screen share: $e');
     }
@@ -513,7 +550,7 @@ class ControlBar extends StatelessWidget {
 
   Future leaveSession() async {
     await zoom.leaveSession(false);
-    onLeaveSession();
+    widget.onLeaveSession();
   }
 
   @override
@@ -548,15 +585,15 @@ class ControlBar extends StatelessWidget {
               },
             ),
             _buildCircleIconButton(
-              icon: isMuted ? Icons.mic_off : Icons.mic,
+              icon: currentMuted ? Icons.mic_off : Icons.mic,
               iconColor: Colors.blue,
-              tooltip: isMuted ? "Unmute" : "Mute",
+              tooltip: currentMuted ? "Unmute" : "Mute",
               onPressed: toggleAudio,
             ),
             _buildCircleIconButton(
-              icon: isVideoOn ? Icons.videocam : Icons.videocam_off,
+              icon: currentVideoOn ? Icons.videocam : Icons.videocam_off,
               iconColor: Colors.blue,
-              tooltip: isVideoOn ? "Turn Video Off" : "Turn Video On",
+              tooltip: currentVideoOn ? "Turn Video Off" : "Turn Video On",
               onPressed: toggleVideo,
             ),
             _buildCircleIconButton(
@@ -566,9 +603,9 @@ class ControlBar extends StatelessWidget {
               onPressed: switchCamera,
             ),
             _buildCircleIconButton(
-              icon: isScreenSharing ? Icons.stop_screen_share : Icons.screen_share,
-              iconColor: isScreenSharing ? Colors.red : Colors.blue,
-              tooltip: isScreenSharing ? "Stop Sharing" : "Share Screen",
+              icon: currentScreenSharing ? Icons.stop_screen_share : Icons.screen_share,
+              iconColor: currentScreenSharing ? Colors.red : Colors.blue,
+              tooltip: currentScreenSharing ? "Stop Sharing" : "Share Screen",
               onPressed: toggleScreenShare,
             ),
             _buildCircleRedButton(
