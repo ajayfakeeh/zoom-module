@@ -82,6 +82,11 @@ class _VideochatState extends State<Videochat> {
     });
   }
 
+  _handleSessionLeave(data) async {
+    debugPrint('Session left: $data');
+    handleLeaveSession();
+  }
+
   _updateUserList(data) async {
     final mySelf = await zoom.session.getMySelf();
     if (mySelf == null) return;
@@ -127,7 +132,7 @@ class _VideochatState extends State<Videochat> {
   _setupEventListeners() {
     subscriptions = [
       eventListener.addListener(EventType.onSessionJoin, _handleSessionJoin),
-      eventListener.addListener(EventType.onSessionLeave, handleLeaveSession),
+      eventListener.addListener(EventType.onSessionLeave, _handleSessionLeave),
       eventListener.addListener(EventType.onUserJoin, _updateUserList),
       eventListener.addListener(EventType.onUserLeave, _updateUserList),
       eventListener.addListener(EventType.onUserVideoStatusChanged, _handleVideoChange),
@@ -176,7 +181,14 @@ class _VideochatState extends State<Videochat> {
   }
 
   handleLeaveSession([data]) async {
+    debugPrint('handleLeaveSession called');
     WakelockPlus.disable();
+    
+    // Clear all subscriptions first
+    for (var subscription in subscriptions) {
+      subscription.cancel();
+    }
+    subscriptions.clear();
     
     if (isInSession) {
       try {
@@ -185,12 +197,6 @@ class _VideochatState extends State<Videochat> {
         debugPrint('Error leaving session: $e');
       }
     }
-    
-    // Clear all subscriptions
-    for (var subscription in subscriptions) {
-      subscription.cancel();
-    }
-    subscriptions.clear();
     
     // Reset all state variables
     if (mounted) {
