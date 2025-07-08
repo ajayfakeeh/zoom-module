@@ -138,15 +138,26 @@ class _VideochatState extends State<Videochat> {
   }
 
   Future startSession() async {
+    if (isLoading || isInSession) return;
+    
     setState(() => isLoading = true);
+    
     try {
+      // Clear any existing subscriptions before setting up new ones
+      for (var subscription in subscriptions) {
+        subscription.cancel();
+      }
+      subscriptions.clear();
+      
       final token = generateJwt(
         sessionDetails['sessionName'],
         sessionDetails['roleType'],
         widget.appKey,
         widget.appSecret,
       );
+      
       _setupEventListeners();
+      
       await zoom.joinSession(
         JoinSessionConfig(
           sessionName: sessionDetails['sessionName']!,
@@ -159,7 +170,7 @@ class _VideochatState extends State<Videochat> {
         ),
       );
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("Error starting session: $e");
       setState(() => isLoading = false);
     }
   }
@@ -175,17 +186,22 @@ class _VideochatState extends State<Videochat> {
       }
     }
     
+    // Clear all subscriptions
     for (var subscription in subscriptions) {
       subscription.cancel();
     }
     subscriptions.clear();
     
+    // Reset all state variables
     if (mounted) {
       setState(() {
         isInSession = false;
         isLoading = false;
         users = [];
         activeSpeakerId = null;
+        isMuted = true;
+        isVideoOn = false;
+        isScreenSharing = false;
       });
     }
   }
