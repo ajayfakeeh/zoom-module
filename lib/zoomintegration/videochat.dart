@@ -215,10 +215,22 @@ class _VideochatState extends State<Videochat> {
           children: [
             if (!isInSession)
               Center(
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : startSession,
-                  child: Text(isLoading ? 'Connecting...' : 'Start Session'),
-                ),
+                child: isLoading
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: Colors.white),
+                          SizedBox(height: 16),
+                          Text(
+                            'Connecting to session...',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ],
+                      )
+                    : ElevatedButton(
+                        onPressed: startSession,
+                        child: Text('Start Session'),
+                      ),
               )
             else
               Stack(
