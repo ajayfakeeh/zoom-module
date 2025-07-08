@@ -103,6 +103,8 @@ class _VideochatState extends State<Videochat> {
     final videoStatus = await mySelf?.videoStatus?.isOn() ?? false;
     setState(() {
       isVideoOn = videoStatus;
+      // Force rebuild of video tiles to update camera status
+      users = List.from(users);
     });
   }
 
@@ -385,27 +387,80 @@ class VideoGrid extends StatelessWidget {
   }
 }
 
-class _VideoTile extends StatelessWidget {
+class _VideoTile extends StatefulWidget {
   final ZoomVideoSdkUser user;
   final bool isMainView;
 
   const _VideoTile({required this.user, this.isMainView = false});
 
   @override
+  State<_VideoTile> createState() => _VideoTileState();
+}
+
+class _VideoTileState extends State<_VideoTile> {
+  bool isVideoOn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkVideoStatus();
+  }
+
+  _checkVideoStatus() async {
+    final videoStatus = await widget.user.videoStatus?.isOn() ?? false;
+    if (mounted) {
+      setState(() {
+        isVideoOn = videoStatus;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.black,
-      borderRadius: isMainView ? null : BorderRadius.circular(8),
+      borderRadius: widget.isMainView ? null : BorderRadius.circular(8),
       child: ClipRRect(
-        borderRadius: isMainView ? BorderRadius.zero : BorderRadius.circular(8),
+        borderRadius: widget.isMainView ? BorderRadius.zero : BorderRadius.circular(8),
         child: SizedBox.expand(
-          child: zoom_view.View(
-            key: Key(user.userId),
-            creationParams: {
-              "userId": user.userId,
-              "videoAspect": VideoAspect.FullFilled,
-              "fullScreen": false,
-            },
+          child: Stack(
+            children: [
+              if (isVideoOn)
+                zoom_view.View(
+                  key: Key(widget.user.userId),
+                  creationParams: {
+                    "userId": widget.user.userId,
+                    "videoAspect": VideoAspect.FullFilled,
+                    "fullScreen": false,
+                  },
+                )
+              else
+                Container(
+                  color: Colors.grey[800],
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.person,
+                          size: widget.isMainView ? 80 : 40,
+                          color: Colors.white70,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          widget.user.userName ?? "Unknown",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: widget.isMainView ? 18 : 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
