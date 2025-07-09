@@ -10,8 +10,10 @@ import 'package:flutter_zoom_videosdk/native/zoom_videosdk_event_listener.dart';
 import 'package:zoom_module/zoomintegration/utils/jwt.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
+import 'package:html_unescape/html_unescape.dart';
 
 import 'ChatSheet.dart';
+import 'ChatManager.dart';
 import 'config.dart';
 
 class Videochat extends StatefulWidget {
@@ -41,6 +43,7 @@ class _VideochatState extends State<Videochat> {
   bool isVideoOn = false;
   bool isLoading = false;
   bool isScreenSharing = false;
+  String? myUserId;
 
   @override
   void initState() {
@@ -71,6 +74,11 @@ class _VideochatState extends State<Videochat> {
     final remoteUsers = await zoom.session.getRemoteUsers() ?? [];
     final isMutedState = await mySelf.audioStatus?.isMuted() ?? true;
     final isVideoOnState = await mySelf.videoStatus?.isOn() ?? false;
+    myUserId = mySelf.userId;
+    
+    // Initialize chat manager
+    ChatManager().initialize(mySelf.userId);
+    
     WakelockPlus.enable();
     
     setState(() {
@@ -185,6 +193,9 @@ class _VideochatState extends State<Videochat> {
   handleLeaveSession([data]) async {
     debugPrint('handleLeaveSession called');
     WakelockPlus.disable();
+    
+    // Dispose chat manager
+    ChatManager().dispose();
     
     // Clear all subscriptions first
     for (var subscription in subscriptions) {
