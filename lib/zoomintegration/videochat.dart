@@ -412,7 +412,7 @@ class _VideoTile extends StatelessWidget {
         borderRadius: isMainView ? BorderRadius.zero : BorderRadius.circular(8),
         child: SizedBox.expand(
           child: FutureBuilder<bool>(
-            key: Key('${user.userId}_${DateTime.now().millisecondsSinceEpoch}'),
+            key: Key('${user.userId}_video_status'),
             future: user.videoStatus?.isOn(),
             builder: (context, snapshot) {
               final isVideoOn = snapshot.data ?? false;
