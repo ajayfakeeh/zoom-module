@@ -41,7 +41,6 @@ class _VideochatState extends State<Videochat> {
   bool isVideoOn = false;
   bool isLoading = false;
   bool isScreenSharing = false;
-  ChatSheet? _chatSheet;
 
   @override
   void initState() {
@@ -484,7 +483,6 @@ class _ControlBarState extends State<ControlBar> {
   late bool currentMuted;
   late bool currentVideoOn;
   late bool currentScreenSharing;
-  ChatSheet? _chatSheet;
 
   @override
   void initState() {
@@ -593,10 +591,7 @@ class _ControlBarState extends State<ControlBar> {
                   ),
                   context: context,
                   isScrollControlled: true,
-                  builder: (context) {
-                    _chatSheet ??= const ChatSheet();
-                    return _chatSheet!;
-                  },
+                  builder: (context) => const ChatSheet(),
                 );
               },
             ),
