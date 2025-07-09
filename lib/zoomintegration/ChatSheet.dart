@@ -204,6 +204,12 @@ class _ChatSheetState extends State<ChatSheet> {
   }
 
   @override
+  void deactivate() {
+    // Don't dispose when modal closes, keep messages
+    super.deactivate();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
