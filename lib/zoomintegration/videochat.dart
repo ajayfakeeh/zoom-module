@@ -484,6 +484,7 @@ class _ControlBarState extends State<ControlBar> {
   late bool currentMuted;
   late bool currentVideoOn;
   late bool currentScreenSharing;
+  ChatSheet? _chatSheet;
 
   @override
   void initState() {
