@@ -312,9 +312,12 @@ class VideoGrid extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
     
-    // Find active speaker - prioritize actual active speaker, then first user
+    // Find active speaker - special logic for 2 users
     ZoomVideoSdkUser activeSpeaker;
-    if (activeSpeakerId != null) {
+    if (users.length == 2) {
+      // When only 2 users, show remote user in main view
+      activeSpeaker = users[1]; // Second user is remote user
+    } else if (activeSpeakerId != null) {
       try {
         activeSpeaker = users.firstWhere((user) => user.userId == activeSpeakerId);
       } catch (e) {
