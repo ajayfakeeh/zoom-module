@@ -72,7 +72,7 @@ class _VideochatState extends State<Videochat> {
     final isMutedState = await mySelf.audioStatus?.isMuted() ?? true;
     final isVideoOnState = await mySelf.videoStatus?.isOn() ?? false;
     WakelockPlus.enable();
-    
+
     setState(() {
       isInSession = true;
       isLoading = false;
@@ -137,34 +137,38 @@ class _VideochatState extends State<Videochat> {
       eventListener.addListener(EventType.onSessionLeave, _handleSessionLeave),
       eventListener.addListener(EventType.onUserJoin, _updateUserList),
       eventListener.addListener(EventType.onUserLeave, _updateUserList),
-      eventListener.addListener(EventType.onUserVideoStatusChanged, _handleVideoChange),
-      eventListener.addListener(EventType.onUserAudioStatusChanged, _handleAudioChange),
-      eventListener.addListener(EventType.onUserActiveAudioChanged, _handleActiveSpeakerChange),
-      eventListener.addListener(EventType.onShareContentChanged, _handleShareChange),
+      eventListener.addListener(
+          EventType.onUserVideoStatusChanged, _handleVideoChange),
+      eventListener.addListener(
+          EventType.onUserAudioStatusChanged, _handleAudioChange),
+      eventListener.addListener(
+          EventType.onUserActiveAudioChanged, _handleActiveSpeakerChange),
+      eventListener.addListener(
+          EventType.onShareContentChanged, _handleShareChange),
     ];
   }
 
   Future startSession() async {
     if (isLoading || isInSession) return;
-    
+
     setState(() => isLoading = true);
-    
+
     try {
       // Clear any existing subscriptions before setting up new ones
       for (var subscription in subscriptions) {
         subscription.cancel();
       }
       subscriptions.clear();
-      
+
       final token = generateJwt(
         sessionDetails['sessionName'],
         sessionDetails['roleType'],
         widget.appKey,
         widget.appSecret,
       );
-      
+
       _setupEventListeners();
-      
+
       await zoom.joinSession(
         JoinSessionConfig(
           sessionName: sessionDetails['sessionName']!,
@@ -185,21 +189,22 @@ class _VideochatState extends State<Videochat> {
   handleLeaveSession([data]) async {
     debugPrint('handleLeaveSession called');
     WakelockPlus.disable();
-    
+
     // Clear all subscriptions first
     for (var subscription in subscriptions) {
       subscription.cancel();
     }
     subscriptions.clear();
-    
+
     if (isInSession) {
       try {
         await zoom.leaveSession(false);
+        await Future.delayed(Duration(seconds: 2));
       } catch (e) {
         debugPrint('Error leaving session: $e');
       }
     }
-    
+
     // Reset all state variables
     if (mounted) {
       setState(() {
@@ -244,7 +249,7 @@ class _VideochatState extends State<Videochat> {
               Stack(
                 children: [
                   VideoGrid(
-                    users: users, 
+                    users: users,
                     activeSpeakerId: activeSpeakerId,
                     onSpeakerChange: (userId) {
                       setState(() {
@@ -257,6 +262,7 @@ class _VideochatState extends State<Videochat> {
                     isVideoOn: isVideoOn,
                     isScreenSharing: isScreenSharing,
                     onLeaveSession: handleLeaveSession,
+                    zoom: zoom,
                     onStateUpdate: (muted, video, screen) {
                       setState(() {
                         isMuted = muted;
@@ -276,7 +282,8 @@ class _VideochatState extends State<Videochat> {
                             SizedBox(height: 16),
                             Text(
                               'Loading video...',
-                              style: TextStyle(color: Colors.white, fontSize: 16),
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 16),
                             ),
                           ],
                         ),
@@ -297,8 +304,8 @@ class VideoGrid extends StatelessWidget {
   final Function(String) onSpeakerChange;
 
   const VideoGrid({
-    super.key, 
-    required this.users, 
+    super.key,
+    required this.users,
     this.activeSpeakerId,
     required this.onSpeakerChange,
   });
@@ -311,7 +318,12 @@ class VideoGrid extends StatelessWidget {
     if (users.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
+    // For more than 2 users, show grid layout
+    if (users.length > 2) {
+      return _buildGridLayout(screenHeight, screenWidth);
+    }
+
     // Find active speaker - special logic for 2 users
     ZoomVideoSdkUser activeSpeaker;
     if (users.length == 2) {
@@ -319,7 +331,8 @@ class VideoGrid extends StatelessWidget {
       activeSpeaker = users[1]; // Second user is remote user
     } else if (activeSpeakerId != null) {
       try {
-        activeSpeaker = users.firstWhere((user) => user.userId == activeSpeakerId);
+        activeSpeaker =
+            users.firstWhere((user) => user.userId == activeSpeakerId);
       } catch (e) {
         // If active speaker not found, use first user
         activeSpeaker = users.first;
@@ -328,71 +341,131 @@ class VideoGrid extends StatelessWidget {
       // No active speaker set, use first user
       activeSpeaker = users.first;
     }
-    
-    debugPrint('Active speaker: ${activeSpeaker.userId}, Total users: ${users.length}');
-    
-    final otherUsers = users.where((user) => user.userId != activeSpeaker.userId).toList();
+
+    debugPrint(
+        'Active speaker: ${activeSpeaker.userId}, Total users: ${users.length}');
+
+    final otherUsers =
+        users.where((user) => user.userId != activeSpeaker.userId).toList();
 
     return Scaffold(
-        backgroundColor: Colors.white,
-        body: SizedBox(
-          height: screenHeight,
-          width: screenWidth,
-          child: Stack(
-            children: [
-              // Fullscreen active speaker
-              Positioned.fill(
-                child: _VideoTile(user: activeSpeaker, isMainView: true),
-              ),
+      backgroundColor: Colors.white,
+      body: SizedBox(
+        height: screenHeight,
+        width: screenWidth,
+        child: Stack(
+          children: [
+            // Fullscreen active speaker
+            Positioned.fill(
+              child: _VideoTile(user: activeSpeaker, isMainView: true),
+            ),
 
-              // ✅ Top-left user name overlay
+            // ✅ Top-left user name overlay
+            Positioned(
+              top: 16,
+              left: 16,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  activeSpeaker.userName ?? "Unknown",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+
+            // Small user tiles in top-right corner
+            if (otherUsers.isNotEmpty)
               Positioned(
                 top: 16,
-                left: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    activeSpeaker.userName ?? "Unknown",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                right: 16,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: otherUsers.asMap().entries.map((entry) {
+                    ZoomVideoSdkUser user = entry.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      width: 90,
+                      height: 120,
+                      child: GestureDetector(
+                        onTap: () {
+                          debugPrint(
+                              'Manually switching to user: ${user.userId}');
+                          onSpeakerChange(user.userId);
+                        },
+                        child: _VideoTile(user: user, isMainView: false),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
-
-              // Small user tiles in top-right corner
-              if (otherUsers.isNotEmpty)
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: otherUsers.asMap().entries.map((entry) {
-                      ZoomVideoSdkUser user = entry.value;
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        width: 90,
-                        height: 120,
-                        child: GestureDetector(
-                          onTap: () {
-                            debugPrint('Manually switching to user: ${user.userId}');
-                            onSpeakerChange(user.userId);
-                          },
-                          child: _VideoTile(user: user, isMainView: false),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-            ],
-          ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildGridLayout(double screenHeight, double screenWidth) {
+    int crossAxisCount = users.length <= 4 ? 2 : 3;
+    int rowCount = (users.length / crossAxisCount).ceil();
+    
+    return SizedBox(
+      width: screenWidth,
+      height: screenHeight - 80, // Reserve space for control bar
+      child: Column(
+        children: List.generate(rowCount, (rowIndex) {
+          return Expanded(
+            child: Row(
+              children: List.generate(crossAxisCount, (colIndex) {
+                int userIndex = rowIndex * crossAxisCount + colIndex;
+                if (userIndex >= users.length) return Expanded(child: Container());
+                
+                return Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300, width: 0.5),
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: _VideoTile(user: users[userIndex], isMainView: false),
+                        ),
+                        Positioned(
+                          bottom: 4,
+                          left: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              users[userIndex].userName ?? "Unknown",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          );
+        }),
+      ),
     );
   }
 }
@@ -416,7 +489,7 @@ class _VideoTile extends StatelessWidget {
             future: user.videoStatus?.isOn(),
             builder: (context, snapshot) {
               final isVideoOn = snapshot.data ?? false;
-              
+
               if (!isVideoOn) {
                 return Container(
                   color: Colors.grey[800],
@@ -444,7 +517,7 @@ class _VideoTile extends StatelessWidget {
                   ),
                 );
               }
-              
+
               return zoom_view.View(
                 key: Key('${user.userId}_video'),
                 creationParams: {
@@ -461,12 +534,15 @@ class _VideoTile extends StatelessWidget {
   }
 }
 
+
+
 class ControlBar extends StatefulWidget {
   final bool isMuted;
   final bool isVideoOn;
   final bool isScreenSharing;
   final VoidCallback onLeaveSession;
   final Function(bool, bool, bool) onStateUpdate;
+  final ZoomVideoSdk zoom; // Add this
 
   const ControlBar({
     super.key,
@@ -475,6 +551,7 @@ class ControlBar extends StatefulWidget {
     required this.isScreenSharing,
     required this.onLeaveSession,
     required this.onStateUpdate,
+    required this.zoom, // Add this
   });
 
   @override
@@ -482,7 +559,7 @@ class ControlBar extends StatefulWidget {
 }
 
 class _ControlBarState extends State<ControlBar> {
-  final zoom = ZoomVideoSdk();
+  late ZoomVideoSdk zoom; // ✅ Use late keyword
   late bool currentMuted;
   late bool currentVideoOn;
   late bool currentScreenSharing;
@@ -490,6 +567,7 @@ class _ControlBarState extends State<ControlBar> {
   @override
   void initState() {
     super.initState();
+    zoom = widget.zoom;
     currentMuted = widget.isMuted;
     currentVideoOn = widget.isVideoOn;
     currentScreenSharing = widget.isScreenSharing;
@@ -569,9 +647,9 @@ class _ControlBarState extends State<ControlBar> {
 
   @override
   Widget build(BuildContext context) {
-
     final double circleButtonSize = 28.0; // icon size inside the circle
-    final double circleButtonPadding = 16.0; // padding around the icon for circle size
+    final double circleButtonPadding =
+        16.0; // padding around the icon for circle size
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -594,7 +672,7 @@ class _ControlBarState extends State<ControlBar> {
                   ),
                   context: context,
                   isScrollControlled: true,
-                  builder: (context) => const ChatSheet(),
+                  builder: (context) => ChatSheet(zoom: zoom),
                 );
               },
             ),
@@ -617,7 +695,9 @@ class _ControlBarState extends State<ControlBar> {
               onPressed: switchCamera,
             ),
             _buildCircleIconButton(
-              icon: currentScreenSharing ? Icons.stop_screen_share : Icons.screen_share,
+              icon: currentScreenSharing
+                  ? Icons.stop_screen_share
+                  : Icons.screen_share,
               iconColor: currentScreenSharing ? Colors.red : Colors.blue,
               tooltip: currentScreenSharing ? "Stop Sharing" : "Share Screen",
               onPressed: toggleScreenShare,

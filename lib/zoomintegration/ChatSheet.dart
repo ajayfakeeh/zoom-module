@@ -11,7 +11,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
 class ChatSheet extends StatefulWidget {
-  const ChatSheet({super.key});
+  final ZoomVideoSdk zoom;
+
+  const ChatSheet({super.key, required this.zoom});
 
   @override
   State<ChatSheet> createState() => _ChatSheetState();
@@ -40,13 +42,15 @@ class ChatMessage {
 class _ChatSheetState extends State<ChatSheet> {
   final TextEditingController _controller = TextEditingController();
   final List<ChatMessage> messages = [];
-  final ZoomVideoSdk zoom = ZoomVideoSdk();
+ // final ZoomVideoSdk zoom = ZoomVideoSdk();
+  late ZoomVideoSdk zoom; // Use late keyword
   StreamSubscription? _chatSubscription;
   String? myUserId;
 
   @override
   void initState() {
     super.initState();
+    zoom = widget.zoom; // Assign from parent
     _initMyUserId();
     _chatSubscription = ZoomVideoSdkEventListener().addListener(
       EventType.onChatNewMessageNotify,
@@ -199,8 +203,20 @@ class _ChatSheetState extends State<ChatSheet> {
 
   @override
   void dispose() {
+    debugPrint('ChatSheet disposing - cancelling chat subscription');
     _chatSubscription?.cancel();
+    _chatSubscription = null;
+    _controller.dispose();
+    messages.clear();
+    myUserId = null;
     super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    debugPrint('ChatSheet deactivating - cleaning up resources');
+    _chatSubscription?.cancel();
+    super.deactivate();
   }
 
   @override
