@@ -42,7 +42,7 @@ class ChatMessage {
 
 class _ChatSheetState extends State<ChatSheet> {
   final TextEditingController _controller = TextEditingController();
-  final List<ChatMessage> messages = [];
+  // final List<ChatMessage> messages = [];
  // final ZoomVideoSdk zoom = ZoomVideoSdk();
   late ZoomVideoSdk zoom; // Use late keyword
 //  final ZoomVideoSdk zoom = ZoomVideoSdk();
@@ -204,7 +204,7 @@ class _ChatSheetState extends State<ChatSheet> {
     _chatSubscription?.cancel();
     _chatSubscription = null;
     _controller.dispose();
-    messages.clear();
+    // messages.clear();
     myUserId = null;
     ChatManager().setMessageCallback(null);
     super.dispose();
