@@ -197,14 +197,8 @@ class _VideochatState extends State<Videochat> {
   handleLeaveSession([data]) async {
     debugPrint('handleLeaveSession called');
     WakelockPlus.disable();
-<<<<<<< HEAD
-
-=======
-    
     // Dispose chat manager
     ChatManager().dispose();
-    
->>>>>>> e03a4dd3f895b891601bf1fac1f3224a86010667
     // Clear all subscriptions first
     for (var subscription in subscriptions) {
       subscription.cancel();

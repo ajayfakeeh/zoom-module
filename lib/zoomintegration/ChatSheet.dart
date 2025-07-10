@@ -42,13 +42,10 @@ class ChatMessage {
 
 class _ChatSheetState extends State<ChatSheet> {
   final TextEditingController _controller = TextEditingController();
-<<<<<<< HEAD
   final List<ChatMessage> messages = [];
  // final ZoomVideoSdk zoom = ZoomVideoSdk();
   late ZoomVideoSdk zoom; // Use late keyword
-=======
-  final ZoomVideoSdk zoom = ZoomVideoSdk();
->>>>>>> e03a4dd3f895b891601bf1fac1f3224a86010667
+//  final ZoomVideoSdk zoom = ZoomVideoSdk();
   StreamSubscription? _chatSubscription;
   String? myUserId;
   
@@ -205,14 +202,11 @@ class _ChatSheetState extends State<ChatSheet> {
   void dispose() {
     debugPrint('ChatSheet disposing - cancelling chat subscription');
     _chatSubscription?.cancel();
-<<<<<<< HEAD
     _chatSubscription = null;
     _controller.dispose();
     messages.clear();
     myUserId = null;
-=======
     ChatManager().setMessageCallback(null);
->>>>>>> e03a4dd3f895b891601bf1fac1f3224a86010667
     super.dispose();
   }
 
