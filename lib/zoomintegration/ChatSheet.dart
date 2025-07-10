@@ -12,7 +12,9 @@ import 'package:http/http.dart' as http;
 import 'ChatManager.dart';
 
 class ChatSheet extends StatefulWidget {
-  const ChatSheet({super.key});
+  final ZoomVideoSdk zoom;
+
+  const ChatSheet({super.key, required this.zoom});
 
   @override
   State<ChatSheet> createState() => _ChatSheetState();
@@ -40,7 +42,10 @@ class ChatMessage {
 
 class _ChatSheetState extends State<ChatSheet> {
   final TextEditingController _controller = TextEditingController();
-  final ZoomVideoSdk zoom = ZoomVideoSdk();
+  final List<ChatMessage> messages = [];
+ // final ZoomVideoSdk zoom = ZoomVideoSdk();
+  late ZoomVideoSdk zoom; // Use late keyword
+//  final ZoomVideoSdk zoom = ZoomVideoSdk();
   StreamSubscription? _chatSubscription;
   String? myUserId;
   
@@ -49,6 +54,7 @@ class _ChatSheetState extends State<ChatSheet> {
   @override
   void initState() {
     super.initState();
+    zoom = widget.zoom; // Assign from parent
     _initMyUserId();
     ChatManager().setMessageCallback(() {
       if (mounted) setState(() {});
@@ -194,9 +200,21 @@ class _ChatSheetState extends State<ChatSheet> {
 
   @override
   void dispose() {
+    debugPrint('ChatSheet disposing - cancelling chat subscription');
     _chatSubscription?.cancel();
+    _chatSubscription = null;
+    _controller.dispose();
+    messages.clear();
+    myUserId = null;
     ChatManager().setMessageCallback(null);
     super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    debugPrint('ChatSheet deactivating - cleaning up resources');
+    _chatSubscription?.cancel();
+    super.deactivate();
   }
 
   @override
