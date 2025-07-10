@@ -572,6 +572,7 @@ class _ControlBarState extends State<ControlBar> {
   late bool currentMuted;
   late bool currentVideoOn;
   late bool currentScreenSharing;
+  int unreadMessages = 0;
 
   @override
   void initState() {
@@ -580,6 +581,13 @@ class _ControlBarState extends State<ControlBar> {
     currentMuted = widget.isMuted;
     currentVideoOn = widget.isVideoOn;
     currentScreenSharing = widget.isScreenSharing;
+    ChatManager().setMessageCallback(() {
+      if (mounted) {
+        setState(() {
+          unreadMessages = ChatManager().unreadCount;
+        });
+      }
+    });
   }
 
   @override
@@ -663,32 +671,66 @@ class _ControlBarState extends State<ControlBar> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 400 ? 8 : 16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildCircleIconButton(
-              icon: Icons.chat,
-              iconColor: Colors.blue,
-              tooltip: "Chat",
-              onPressed: () {
-                showModalBottomSheet(
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
+            Stack(
+              children: [
+                _buildCircleIconButton(
+                  icon: Icons.chat,
+                  iconColor: Colors.blue,
+                  tooltip: "Chat",
+                  onPressed: () {
+                    ChatManager().clearUnreadCount();
+                    setState(() {
+                      unreadMessages = 0;
+                    });
+                    showModalBottomSheet(
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
+                      ),
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (context) => ChatSheet(zoom: zoom),
+                    );
+                  },
+                ),
+                if (unreadMessages > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        unreadMessages > 99 ? '99+' : unreadMessages.toString(),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (context) => ChatSheet(zoom: zoom),
-                );
-              },
+              ],
             ),
             _buildCircleIconButton(
               icon: currentMuted ? Icons.mic_off : Icons.mic,
               iconColor: Colors.blue,
               tooltip: currentMuted ? "Unmute" : "Mute",
+              spacing: MediaQuery.of(context).size.width < 400 ? 3 : 6,
               onPressed: toggleAudio,
             ),
             _buildCircleIconButton(
@@ -715,6 +757,7 @@ class _ControlBarState extends State<ControlBar> {
               icon: Icons.call_end,
               iconColor: Colors.white,
               tooltip: "Leave Call",
+              spacing: MediaQuery.of(context).size.width < 400 ? 3 : 6,
               onPressed: leaveSession,
             ),
           ],
@@ -728,6 +771,7 @@ class _ControlBarState extends State<ControlBar> {
     required Color iconColor,
     required VoidCallback onPressed,
     String? tooltip,
+    double spacing = 6.0,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -762,6 +806,7 @@ class _ControlBarState extends State<ControlBar> {
     required Color iconColor,
     required VoidCallback onPressed,
     String? tooltip,
+    double spacing = 6.0,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),

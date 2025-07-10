@@ -15,8 +15,10 @@ class ChatManager {
   StreamSubscription? _chatSubscription;
   String? _myUserId;
   VoidCallback? _onMessageReceived;
+  int _unreadCount = 0;
 
   List<ChatMessage> get messages => _messages;
+  int get unreadCount => _unreadCount;
 
   void initialize(String myUserId) {
     _myUserId = myUserId;
@@ -66,15 +68,23 @@ class ChatManager {
         _messages.add(ChatMessage(content: content, isMe: isMe));
       }
       
+      if (!isMe) {
+        _unreadCount++;
+      }
       _onMessageReceived?.call();
     } catch (e) {
       debugPrint("Error handling message: $e");
     }
   }
 
+  void clearUnreadCount() {
+    _unreadCount = 0;
+  }
+
   void dispose() {
     _chatSubscription?.cancel();
     _chatSubscription = null;
     _messages.clear();
+    _unreadCount = 0;
   }
 }

@@ -28,6 +28,7 @@ class ChatMessage {
   final String? localImagePath;
   final bool isUploading;
   final double uploadProgress;
+  final DateTime timestamp;
   
   ChatMessage({
     required this.content, 
@@ -37,7 +38,8 @@ class ChatMessage {
     this.localImagePath,
     this.isUploading = false,
     this.uploadProgress = 0.0,
-  });
+    DateTime? timestamp,
+  }) : timestamp = timestamp ?? DateTime.now();
 }
 
 class _ChatSheetState extends State<ChatSheet> {
@@ -246,57 +248,70 @@ class _ChatSheetState extends State<ChatSheet> {
                         color: message.isMe ? Colors.blue : Colors.grey[300],
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: message.contentType == 'Image'
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Stack(
+                      child: Column(
+                        crossAxisAlignment: message.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                        children: [
+                          message.contentType == 'Image'
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Show local image if uploading, network image if uploaded
-                                    message.isUploading && message.localImagePath != null
-                                        ? Image.file(File(message.localImagePath!), height: 150, fit: BoxFit.cover)
-                                        : message.filePath.isNotEmpty
-                                            ? Image.network(message.filePath, height: 150, fit: BoxFit.cover)
-                                            : Container(height: 150, color: Colors.grey),
-                                    // Progress indicator overlay
-                                    if (message.isUploading)
-                                      Positioned.fill(
-                                        child: Container(
-                                          color: Colors.black54,
-                                          child: Center(
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                CircularProgressIndicator(
-                                                  value: message.uploadProgress,
-                                                  color: Colors.white,
+                                    Stack(
+                                      children: [
+                                        // Show local image if uploading, network image if uploaded
+                                        message.isUploading && message.localImagePath != null
+                                            ? Image.file(File(message.localImagePath!), height: 150, fit: BoxFit.cover)
+                                            : message.filePath.isNotEmpty
+                                                ? Image.network(message.filePath, height: 150, fit: BoxFit.cover)
+                                                : Container(height: 150, color: Colors.grey),
+                                        // Progress indicator overlay
+                                        if (message.isUploading)
+                                          Positioned.fill(
+                                            child: Container(
+                                              color: Colors.black54,
+                                              child: Center(
+                                                child: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    CircularProgressIndicator(
+                                                      value: message.uploadProgress,
+                                                      color: Colors.white,
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      '${(message.uploadProgress * 100).toInt()}%',
+                                                      style: const TextStyle(color: Colors.white),
+                                                    ),
+                                                  ],
                                                 ),
-                                                const SizedBox(height: 8),
-                                                Text(
-                                                  '${(message.uploadProgress * 100).toInt()}%',
-                                                  style: const TextStyle(color: Colors.white),
-                                                ),
-                                              ],
+                                              ),
                                             ),
                                           ),
+                                      ],
+                                    ),
+                                    if (message.content.isNotEmpty) 
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        child: Text(
+                                          message.content, 
+                                          style: TextStyle(color: message.isMe ? Colors.white : Colors.black)
                                         ),
                                       ),
                                   ],
+                                )
+                              : Text(
+                                  message.content,
+                                  style: TextStyle(color: message.isMe ? Colors.white : Colors.black),
                                 ),
-                                if (message.content.isNotEmpty) 
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(
-                                      message.content, 
-                                      style: TextStyle(color: message.isMe ? Colors.white : Colors.black)
-                                    ),
-                                  ),
-                              ],
-                            )
-                          : Text(
-                              message.content,
-                              style: TextStyle(color: message.isMe ? Colors.white : Colors.black),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}',
+                            style: TextStyle(
+                              color: message.isMe ? Colors.white70 : Colors.black54,
+                              fontSize: 10,
                             ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
