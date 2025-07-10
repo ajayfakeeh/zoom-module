@@ -44,6 +44,7 @@ class _VideochatState extends State<Videochat> {
   bool isLoading = false;
   bool isScreenSharing = false;
   String? myUserId;
+  Timer? _userListTimer;
 
   @override
   void initState() {
@@ -56,6 +57,7 @@ class _VideochatState extends State<Videochat> {
 
   @override
   void dispose() {
+    _userListTimer?.cancel();
     handleLeaveSession();
     super.dispose();
   }
@@ -88,6 +90,16 @@ class _VideochatState extends State<Videochat> {
       isVideoOn = isVideoOnState;
       users = [mySelf, ...remoteUsers];
     });
+    
+    // Start periodic user list refresh
+    _startUserListRefresh();
+    
+    // Force user list update after delay to catch any missed users
+    Timer(Duration(seconds: 3), () {
+      if (mounted && isInSession) {
+        _updateUserList(null);
+      }
+    });
   }
 
   _handleSessionLeave(data) async {
@@ -99,9 +111,37 @@ class _VideochatState extends State<Videochat> {
     final mySelf = await zoom.session.getMySelf();
     if (mySelf == null) return;
     final remoteUserList = await zoom.session.getRemoteUsers() ?? [];
+    
     remoteUserList.insert(0, mySelf);
-    setState(() {
-      users = remoteUserList;
+    
+    // Only update if user list actually changed
+    if (_hasUserListChanged(remoteUserList)) {
+      debugPrint('User list changed: ${remoteUserList.length} total users');
+      if (mounted) {
+        setState(() {
+          users = remoteUserList;
+        });
+      }
+    }
+  }
+  
+  bool _hasUserListChanged(List<ZoomVideoSdkUser> newUsers) {
+    if (users.length != newUsers.length) return true;
+    
+    for (int i = 0; i < users.length; i++) {
+      if (users[i].userId != newUsers[i].userId) return true;
+    }
+    return false;
+  }
+  
+  void _startUserListRefresh() {
+    _userListTimer?.cancel();
+    _userListTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+      if (isInSession && mounted) {
+        _updateUserList(null);
+      } else {
+        timer.cancel();
+      }
     });
   }
 
@@ -199,6 +239,9 @@ class _VideochatState extends State<Videochat> {
     WakelockPlus.disable();
     // Dispose chat manager
     ChatManager().dispose();
+    // Stop user list refresh timer
+    _userListTimer?.cancel();
+    
     // Clear all subscriptions first
     for (var subscription in subscriptions) {
       subscription.cancel();
@@ -479,44 +522,89 @@ class VideoGrid extends StatelessWidget {
   }
 }
 
-class _VideoTile extends StatelessWidget {
+class _VideoTile extends StatefulWidget {
   final ZoomVideoSdkUser user;
   final bool isMainView;
 
   const _VideoTile({required this.user, this.isMainView = false});
 
   @override
+  State<_VideoTile> createState() => _VideoTileState();
+}
+
+class _VideoTileState extends State<_VideoTile> {
+  int retryCount = 0;
+  final int maxRetries = 3;
+  bool isRetrying = false;
+  Timer? retryTimer;
+
+  @override
+  void dispose() {
+    retryTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<bool> _getVideoStatusWithRetry() async {
+    for (int i = 0; i < maxRetries; i++) {
+      try {
+        final isVideoOn = await widget.user.videoStatus?.isOn() ?? false;
+        if (isVideoOn) return true;
+        
+        // Wait before retry
+        if (i < maxRetries - 1) {
+          await Future.delayed(Duration(seconds: 1 + i));
+        }
+      } catch (e) {
+        debugPrint('Video status check error (attempt ${i + 1}): $e');
+        if (i < maxRetries - 1) {
+          await Future.delayed(Duration(seconds: 1 + i));
+        }
+      }
+    }
+    return false;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.black,
-      borderRadius: isMainView ? null : BorderRadius.circular(8),
+      borderRadius: widget.isMainView ? null : BorderRadius.circular(8),
       child: ClipRRect(
-        borderRadius: isMainView ? BorderRadius.zero : BorderRadius.circular(8),
+        borderRadius: widget.isMainView ? BorderRadius.zero : BorderRadius.circular(8),
         child: SizedBox.expand(
           child: FutureBuilder<bool>(
-            key: Key('${user.userId}_video_status'),
-            future: user.videoStatus?.isOn(),
+            key: Key('${widget.user.userId}_video_stable'),
+            future: _getVideoStatusWithRetry(),
             builder: (context, snapshot) {
-              final isVideoOn = snapshot.data ?? false;
-
-              if (!isVideoOn) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
                 return Container(
                   color: Colors.grey[800],
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.person,
-                          size: isMainView ? 80 : 40,
-                          color: Colors.white70,
+                        SizedBox(
+                          width: widget.isMainView ? 30 : 20,
+                          height: widget.isMainView ? 30 : 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white70,
+                          ),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          user.userName ?? "Unknown",
+                          'Loading video...',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: widget.isMainView ? 14 : 10,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          widget.user.userName ?? "Unknown",
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: isMainView ? 18 : 12,
+                            fontSize: widget.isMainView ? 16 : 10,
                             fontWeight: FontWeight.w500,
                           ),
                           textAlign: TextAlign.center,
@@ -526,11 +614,41 @@ class _VideoTile extends StatelessWidget {
                   ),
                 );
               }
-
+              
+              final isVideoOn = snapshot.data ?? false;
+              
+              if (!isVideoOn) {
+                return Container(
+                  color: Colors.grey[800],
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.person,
+                          size: widget.isMainView ? 80 : 40,
+                          color: Colors.white70,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          widget.user.userName ?? "Unknown",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: widget.isMainView ? 18 : 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              
               return zoom_view.View(
-                key: Key('${user.userId}_video'),
+                key: Key('${widget.user.userId}_video_view'),
                 creationParams: {
-                  "userId": user.userId,
+                  "userId": widget.user.userId,
                   "videoAspect": VideoAspect.FullFilled,
                   "fullScreen": false,
                 },
