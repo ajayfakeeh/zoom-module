@@ -9,6 +9,7 @@ import 'package:flutter_zoom_videosdk/native/zoom_videosdk_event_listener.dart';
 import 'package:html_unescape/html_unescape.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'ChatManager.dart';
 
 class ChatSheet extends StatefulWidget {
   final ZoomVideoSdk zoom;
@@ -41,21 +42,26 @@ class ChatMessage {
 
 class _ChatSheetState extends State<ChatSheet> {
   final TextEditingController _controller = TextEditingController();
+<<<<<<< HEAD
   final List<ChatMessage> messages = [];
  // final ZoomVideoSdk zoom = ZoomVideoSdk();
   late ZoomVideoSdk zoom; // Use late keyword
+=======
+  final ZoomVideoSdk zoom = ZoomVideoSdk();
+>>>>>>> e03a4dd3f895b891601bf1fac1f3224a86010667
   StreamSubscription? _chatSubscription;
   String? myUserId;
+  
+  List<ChatMessage> get messages => ChatManager().messages;
 
   @override
   void initState() {
     super.initState();
     zoom = widget.zoom; // Assign from parent
     _initMyUserId();
-    _chatSubscription = ZoomVideoSdkEventListener().addListener(
-      EventType.onChatNewMessageNotify,
-      _handleNewMessage,
-    );
+    ChatManager().setMessageCallback(() {
+      if (mounted) setState(() {});
+    });
   }
 
   void _initMyUserId() async {
@@ -89,15 +95,9 @@ class _ChatSheetState extends State<ChatSheet> {
       // Try to parse JSON message
       try {
         final jsonContent = jsonDecode(content);
-        setState(() => messages.add(ChatMessage(
-          content: jsonContent['content'] ?? content,
-          isMe: isMe,
-          contentType: jsonContent['content_type'] ?? 'Text',
-          filePath: jsonContent['file_path'] ?? '',
-        )));
+        // Messages now handled by ChatManager
       } catch (e) {
-        // If not JSON, treat as plain text
-        setState(() => messages.add(ChatMessage(content: content, isMe: isMe)));
+        // Messages now handled by ChatManager
       }
     } catch (e) {
       debugPrint("Error handling message: $e");
@@ -141,25 +141,26 @@ class _ChatSheetState extends State<ChatSheet> {
       isUploading: true,
     );
     
-    setState(() => messages.add(uploadingMessage));
-    final messageIndex = messages.length - 1;
+    ChatManager().messages.add(uploadingMessage);
+    setState(() {});
+    final messageIndex = ChatManager().messages.length - 1;
     
     try {
       final imageUrl = await _uploadImageWithProgress(File(image.path), (progress) {
-        setState(() {
-          messages[messageIndex] = ChatMessage(
-            content: "Uploading... ${(progress * 100).toInt()}%",
-            isMe: true,
-            contentType: "Image",
-            localImagePath: image.path,
-            isUploading: true,
-            uploadProgress: progress,
-          );
-        });
+        ChatManager().messages[messageIndex] = ChatMessage(
+          content: "Uploading... ${(progress * 100).toInt()}%",
+          isMe: true,
+          contentType: "Image",
+          localImagePath: image.path,
+          isUploading: true,
+          uploadProgress: progress,
+        );
+        setState(() {});
       });
       
       // Remove uploading message and send actual message
-      setState(() => messages.removeAt(messageIndex));
+      ChatManager().messages.removeAt(messageIndex);
+      setState(() {});
       
       final jsonMessage = jsonEncode({
         "content_type": "Image",
@@ -170,13 +171,12 @@ class _ChatSheetState extends State<ChatSheet> {
       await zoom.chatHelper.sendChatToAll(jsonMessage);
     } catch (e) {
       // Update message to show error
-      setState(() {
-        messages[messageIndex] = ChatMessage(
-          content: "Upload failed",
-          isMe: true,
-          contentType: "Text",
-        );
-      });
+      ChatManager().messages[messageIndex] = ChatMessage(
+        content: "Upload failed",
+        isMe: true,
+        contentType: "Text",
+      );
+      setState(() {});
       debugPrint("Error uploading image: $e");
     }
   }
@@ -205,10 +205,14 @@ class _ChatSheetState extends State<ChatSheet> {
   void dispose() {
     debugPrint('ChatSheet disposing - cancelling chat subscription');
     _chatSubscription?.cancel();
+<<<<<<< HEAD
     _chatSubscription = null;
     _controller.dispose();
     messages.clear();
     myUserId = null;
+=======
+    ChatManager().setMessageCallback(null);
+>>>>>>> e03a4dd3f895b891601bf1fac1f3224a86010667
     super.dispose();
   }
 
