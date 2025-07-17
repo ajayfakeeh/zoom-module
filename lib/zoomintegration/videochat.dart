@@ -11,10 +11,10 @@ import 'package:zoom_module/zoomintegration/utils/jwt.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:html_unescape/html_unescape.dart';
-
 import 'ChatSheet.dart';
 import 'ChatManager.dart';
 import 'config.dart';
+import 'widgets/circle_icon_button.dart';
 
 class Videochat extends StatefulWidget {
   final String appKey;
@@ -396,26 +396,41 @@ class VideoGrid extends StatelessWidget {
               Positioned(
                 top: 16,
                 right: 16,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: otherUsers.asMap().entries.map((entry) {
-                    ZoomVideoSdkUser user = entry.value;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      width: 90,
-                      height: 120,
-                      child: GestureDetector(
-                        onTap: () {
-                          debugPrint(
-                              'Manually switching to user: ${user.userId}');
-                          onSpeakerChange(user.userId);
-                        },
-                        child: _VideoTile(user: user, isMainView: false),
-                      ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final screenWidth = MediaQuery.of(context).size.width;
+
+                    // Determine tile size based on device width
+                    final tileWidth = screenWidth > 600 ? 250.0 : 90.0;   // Tablet:180, phone:90
+                    final tileHeight = screenWidth > 600 ? 300.0 : 120.0; // Tablet:180, phone:120
+                    final tileMargin = screenWidth > 600 ? 12.0 : 8.0;
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: otherUsers.asMap().entries.map((entry) {
+                        ZoomVideoSdkUser user = entry.value;
+                        return Container(
+                          // height: tileHeight,
+                          width: tileWidth,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16)
+                          ),
+                          child: AspectRatio(
+                            aspectRatio: 9/16,
+                            child: GestureDetector(
+                              onTap: () {
+                                debugPrint('Manually switching to user: ${user.userId}');
+                                onSpeakerChange(user.userId);
+                              },
+                              child: _VideoTile(user: user, isMainView: false),
+                            )
+                          ),
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
+                  },
                 ),
-              ),
+              )
           ],
         ),
       ),
@@ -590,13 +605,13 @@ class _ControlBarState extends State<ControlBar> {
     });
   }
 
-  @override
+  /*@override
   void didUpdateWidget(ControlBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     currentMuted = widget.isMuted;
     currentVideoOn = widget.isVideoOn;
     currentScreenSharing = widget.isScreenSharing;
-  }
+  }*/
 
   Future toggleAudio() async {
     final mySelf = await zoom.session.getMySelf();
@@ -659,178 +674,132 @@ class _ControlBarState extends State<ControlBar> {
 
   Future leaveSession() async {
     await zoom.leaveSession(false);
+    if (mounted) {
+      Navigator.of(context).pop(); // Pops current screen
+    }
     widget.onLeaveSession();
   }
 
   @override
   Widget build(BuildContext context) {
-    final double circleButtonSize = 28.0; // icon size inside the circle
-    final double circleButtonPadding =
-        16.0; // padding around the icon for circle size
+    // final double circleButtonSize = 28.0; // icon size inside the circle
+    // final double circleButtonPadding =
+    //     16.0; // padding around the icon for circle size
 
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 400 ? 8 : 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              children: [
-                _buildCircleIconButton(
-                  icon: Icons.chat,
-                  iconColor: Colors.blue,
-                  tooltip: "Chat",
-                  onPressed: () {
-                    ChatManager().clearUnreadCount();
-                    setState(() {
-                      unreadMessages = 0;
-                    });
-                    showModalBottomSheet(
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 600 ? 12 : 24),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isTablet = constraints.maxWidth >= 600;
+            final iconSize = isTablet ? 32.0 : 24.0;
+            final padding = isTablet ? 16.0 : 8.0;
+            final spacing = isTablet ? 12.0 : 6.0;
+
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Stack(
+                    children: [
+                      CircleIconButton(
+                        icon: Icons.chat,
+                        iconColor: Colors.blue,
+                        backgroundColor: Colors.white,
+                        tooltip: "Chat",
+                        onPressed: () {
+                          ChatManager().clearUnreadCount();
+                          setState(() {
+                            unreadMessages = 0;
+                          });
+                          showModalBottomSheet(
+                            backgroundColor: Colors.white,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(20),
+                              ),
+                            ),
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (context) => ChatSheet(zoom: zoom),
+                          );
+                        },
+                      ),
+                      if (unreadMessages > 0)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 20,
+                              minHeight: 20,
+                            ),
+                            child: Text(
+                              unreadMessages > 99 ? '99+' : unreadMessages.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
-                      ),
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (context) => ChatSheet(zoom: zoom),
-                    );
-                  },
-                ),
-                if (unreadMessages > 0)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      constraints: BoxConstraints(
-                        minWidth: 20,
-                        minHeight: 20,
-                      ),
-                      child: Text(
-                        unreadMessages > 99 ? '99+' : unreadMessages.toString(),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                    ],
                   ),
-              ],
-            ),
-            _buildCircleIconButton(
-              icon: currentMuted ? Icons.mic_off : Icons.mic,
-              iconColor: Colors.blue,
-              tooltip: currentMuted ? "Unmute" : "Mute",
-              spacing: MediaQuery.of(context).size.width < 400 ? 3 : 6,
-              onPressed: toggleAudio,
-            ),
-            _buildCircleIconButton(
-              icon: currentVideoOn ? Icons.videocam : Icons.videocam_off,
-              iconColor: Colors.blue,
-              tooltip: currentVideoOn ? "Turn Video Off" : "Turn Video On",
-              onPressed: toggleVideo,
-            ),
-            _buildCircleIconButton(
-              icon: Icons.flip_camera_ios,
-              iconColor: Colors.blue,
-              tooltip: "Switch Camera",
-              onPressed: switchCamera,
-            ),
-            _buildCircleIconButton(
-              icon: currentScreenSharing
-                  ? Icons.stop_screen_share
-                  : Icons.screen_share,
-              iconColor: currentScreenSharing ? Colors.red : Colors.blue,
-              tooltip: currentScreenSharing ? "Stop Sharing" : "Share Screen",
-              onPressed: toggleScreenShare,
-            ),
-            _buildCircleRedButton(
-              icon: Icons.call_end,
-              iconColor: Colors.white,
-              tooltip: "Leave Call",
-              spacing: MediaQuery.of(context).size.width < 400 ? 3 : 6,
-              onPressed: leaveSession,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCircleIconButton({
-    required IconData icon,
-    required Color iconColor,
-    required VoidCallback onPressed,
-    String? tooltip,
-    double spacing = 6.0,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Material(
-        color: Colors.white,
-        shape: const CircleBorder(),
-        elevation: 4,
-        shadowColor: Colors.black45,
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onPressed,
-          child: Container(
-            width: 28.0 + 16.0,
-            height: 28.0 + 16.0,
-            alignment: Alignment.center,
-            child: Tooltip(
-              message: tooltip ?? '',
-              child: Icon(
-                icon,
-                size: 28.0,
-                color: iconColor,
+                  SizedBox(width: spacing),
+                  CircleIconButton(
+                    icon: currentMuted ? Icons.mic_off : Icons.mic,
+                    iconColor: Colors.blue,
+                    backgroundColor: Colors.white,
+                    tooltip: currentMuted ? "Unmute" : "Mute",
+                    onPressed: toggleAudio,
+                  ),
+                  SizedBox(width: spacing),
+                  CircleIconButton(
+                    icon: currentVideoOn ? Icons.videocam : Icons.videocam_off,
+                    iconColor: Colors.blue,
+                    backgroundColor: Colors.white,
+                    tooltip: currentVideoOn ? "Turn Video Off" : "Turn Video On",
+                    onPressed: toggleVideo,
+                  ),
+                  SizedBox(width: spacing),
+                  CircleIconButton(
+                    icon: Icons.flip_camera_ios,
+                    iconColor: Colors.blue,
+                    backgroundColor: Colors.white,
+                    tooltip: "Switch Camera",
+                    onPressed: switchCamera,
+                  ),
+                  SizedBox(width: spacing),
+                  CircleIconButton(
+                    icon: currentScreenSharing
+                        ? Icons.stop_screen_share
+                        : Icons.screen_share,
+                    iconColor: currentScreenSharing ? Colors.red : Colors.blue,
+                    backgroundColor: Colors.white,
+                    tooltip: currentScreenSharing ? "Stop Sharing" : "Share Screen",
+                    onPressed: toggleScreenShare,
+                  ),
+                  SizedBox(width: spacing),
+                  CircleIconButton(
+                    icon: Icons.call_end,
+                    iconColor: Colors.white,
+                    backgroundColor: Colors.red,
+                    tooltip: "Leave Call",
+                    onPressed: leaveSession,
+                  ),
+                ],
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCircleRedButton({
-    required IconData icon,
-    required Color iconColor,
-    required VoidCallback onPressed,
-    String? tooltip,
-    double spacing = 6.0,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Material(
-        color: Colors.red,
-        shape: const CircleBorder(),
-        elevation: 4,
-        shadowColor: Colors.black45,
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onPressed,
-          child: Container(
-            width: 28.0 + 16.0,
-            height: 28.0 + 16.0,
-            alignment: Alignment.center,
-            child: Tooltip(
-              message: tooltip ?? '',
-              child: Icon(
-                icon,
-                size: 28.0,
-                color: iconColor,
-              ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
