@@ -40,7 +40,9 @@ class _TabViewSingleState extends State<TabViewSingle> {
 
   @override
   void initState() {
+    super.initState();
     findActiveSpeaker();
+
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     SystemChrome.setSystemUIOverlayStyle(
@@ -51,31 +53,45 @@ class _TabViewSingleState extends State<TabViewSingle> {
         systemNavigationBarIconBrightness: Brightness.light,
       ),
     );
+  }
 
-    super.initState();
+  @override
+  void didUpdateWidget(covariant TabViewSingle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If users list or activeSpeakerId changed, update activeSpeaker
+    if (oldWidget.users != widget.users ||
+        oldWidget.activeSpeakerId != widget.activeSpeakerId) {
+      findActiveSpeaker();
+    }
   }
 
   void findActiveSpeaker() {
-    // Find active speaker - special logic for 2 users
+    ZoomVideoSdkUser? newActiveSpeaker;
 
     if (widget.users.length == 2) {
-      // When only 2 users, show remote user in main view
-      activeSpeaker = widget.users[1]; // Second user is remote user
+      // When exactly 2 users, show remote user in main view
+      newActiveSpeaker = widget.users[1];
     } else if (widget.activeSpeakerId != null) {
       try {
-        activeSpeaker = widget.users
+        newActiveSpeaker = widget.users
             .firstWhere((user) => user.userId == widget.activeSpeakerId);
       } catch (e) {
-        // If active speaker not found, use first user
-        activeSpeaker = widget.users.first;
+        // If active speaker not found, fallback to first user
+        newActiveSpeaker = widget.users.first;
       }
     } else {
-      // No active speaker set, use first user
-      activeSpeaker = widget.users.first;
+      // No active speaker set, fallback to first user
+      newActiveSpeaker = widget.users.first;
+    }
+
+    if (newActiveSpeaker?.userId != activeSpeaker?.userId) {
+      setState(() {
+        activeSpeaker = newActiveSpeaker;
+      });
     }
 
     debugPrint(
-        'Active speaker: ${activeSpeaker?.userId}, Total users: ${widget.users.length}');
+        'Active speaker updated: ${activeSpeaker?.userId}, Total users: ${widget.users.length}');
   }
 
   @override
@@ -84,8 +100,8 @@ class _TabViewSingleState extends State<TabViewSingle> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // For more than 2 users, show grid layout
-    if (widget.users.length > 1) {
+    // For more than 2 users, use multi-user grid view
+    if (widget.users.length > 2) {
       return TabViewMultiple(
         users: widget.users,
         isMuted: widget.isMuted,
