@@ -4,6 +4,30 @@ import 'package:zoom_module/zoomintegration/ZoomLauncher.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  /// 🧱 UI Mode: Enables immersive full screen mode.
+  /// Hides both the status bar and navigation bar,
+  /// but they temporarily reappear when the user swipes from the edges.
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+  /// 🎨 Overlay Style: Customizes the appearance of system UI overlays
+  /// like the status bar and navigation bar.
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      /// 🔍 Status Bar Background: Transparent so your content can extend behind it.
+      statusBarColor: Colors.transparent,
+
+      /// 📱 Navigation Bar Background: Black by default (can be transparent for full UI control).
+      systemNavigationBarColor: Colors.black,
+
+      /// 🌙 Status Bar Icons: Light icons for visibility on dark backgrounds.
+      statusBarIconBrightness: Brightness.light,
+
+      /// 🌙 Navigation Bar Icons: Also light-colored for consistency.
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
+
   runApp(const MyApp());
 }
 

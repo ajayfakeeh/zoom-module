@@ -5,16 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
-import 'package:flutter_zoom_videosdk/flutter_zoom_view.dart' as zoom_view;
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_event_listener.dart';
+import 'package:zoom_module/zoomintegration/tab_view_single.dart';
 import 'package:zoom_module/zoomintegration/utils/jwt.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
-import 'package:html_unescape/html_unescape.dart';
-import 'ChatSheet.dart';
+import 'package:zoom_module/zoomintegration/widgets/loading_widget.dart';
+import 'package:zoom_module/zoomintegration/mobile_view_single.dart';
 import 'ChatManager.dart';
 import 'config.dart';
-import 'widgets/circle_icon_button.dart';
 
 class Videochat extends StatefulWidget {
   final String appKey;
@@ -51,7 +50,17 @@ class _VideochatState extends State<Videochat> {
     if (Platform.isAndroid) {
       _checkPermissions();
     }
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.black,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
   }
 
   @override
@@ -68,17 +77,17 @@ class _VideochatState extends State<Videochat> {
     debugPrint('Camera permission: $camera, Microphone permission: $mic');
   }
 
-  _handleSessionJoin(data) async {
+  Future<void> _handleSessionJoin(data) async {
     if (!mounted) return;
     final mySelf = ZoomVideoSdkUser.fromJson(jsonDecode(data['sessionUser']));
     final remoteUsers = await zoom.session.getRemoteUsers() ?? [];
     final isMutedState = await mySelf.audioStatus?.isMuted() ?? true;
     final isVideoOnState = await mySelf.videoStatus?.isOn() ?? false;
     myUserId = mySelf.userId;
-    
+
     // Initialize chat manager
     ChatManager().initialize(mySelf.userId);
-    
+
     WakelockPlus.enable();
 
     setState(() {
@@ -90,12 +99,12 @@ class _VideochatState extends State<Videochat> {
     });
   }
 
-  _handleSessionLeave(data) async {
+  Future<void> _handleSessionLeave(data) async {
     debugPrint('Session left: $data');
     handleLeaveSession();
   }
 
-  _updateUserList(data) async {
+  Future<void> _updateUserList(data) async {
     final mySelf = await zoom.session.getMySelf();
     if (mySelf == null) return;
     final remoteUserList = await zoom.session.getRemoteUsers() ?? [];
@@ -105,7 +114,7 @@ class _VideochatState extends State<Videochat> {
     });
   }
 
-  _handleVideoChange(data) async {
+  Future<void> _handleVideoChange(data) async {
     if (!mounted) return;
     final mySelf = await zoom.session.getMySelf();
     final videoStatus = await mySelf?.videoStatus?.isOn() ?? false;
@@ -116,7 +125,7 @@ class _VideochatState extends State<Videochat> {
     });
   }
 
-  _handleAudioChange(data) async {
+  Future<void> _handleAudioChange(data) async {
     if (!mounted) return;
     final mySelf = await zoom.session.getMySelf();
     final audioStatus = await mySelf?.audioStatus?.isMuted() ?? true;
@@ -125,21 +134,21 @@ class _VideochatState extends State<Videochat> {
     });
   }
 
-  _handleActiveSpeakerChange(data) {
+  void _handleActiveSpeakerChange(data) {
     debugPrint('Active speaker changed: ${data['userId']}');
     setState(() {
       activeSpeakerId = data['userId'];
     });
   }
 
-  _handleShareChange(data) {
+  void _handleShareChange(data) {
     debugPrint('Share status changed: $data');
     setState(() {
       isScreenSharing = data['isSharing'] ?? false;
     });
   }
 
-  _setupEventListeners() {
+  void _setupEventListeners() {
     subscriptions = [
       eventListener.addListener(EventType.onSessionJoin, _handleSessionJoin),
       eventListener.addListener(EventType.onSessionLeave, _handleSessionLeave),
@@ -194,7 +203,7 @@ class _VideochatState extends State<Videochat> {
     }
   }
 
-  handleLeaveSession([data]) async {
+  Future<void> handleLeaveSession([data]) async {
     debugPrint('handleLeaveSession called');
     WakelockPlus.disable();
     // Dispose chat manager
@@ -230,577 +239,65 @@ class _VideochatState extends State<Videochat> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.grey[900],
-        body: Stack(
-          children: [
-            if (!isInSession)
-              Center(
-                child: isLoading
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(color: Colors.white),
-                          SizedBox(height: 16),
-                          Text(
-                            'Connecting to session...',
-                            style: TextStyle(color: Colors.white, fontSize: 16),
-                          ),
-                        ],
-                      )
-                    : ElevatedButton(
-                        onPressed: startSession,
-                        child: Text('Start Session'),
-                      ),
-              )
-            else
-              Stack(
-                children: [
-                  VideoGrid(
-                    users: users,
-                    activeSpeakerId: activeSpeakerId,
-                    onSpeakerChange: (userId) {
-                      setState(() {
-                        activeSpeakerId = userId;
-                      });
-                    },
-                  ),
-                  ControlBar(
-                    isMuted: isMuted,
-                    isVideoOn: isVideoOn,
-                    isScreenSharing: isScreenSharing,
-                    onLeaveSession: handleLeaveSession,
-                    zoom: zoom,
-                    onStateUpdate: (muted, video, screen) {
-                      setState(() {
-                        isMuted = muted;
-                        isVideoOn = video;
-                        isScreenSharing = screen;
-                      });
-                    },
-                  ),
-                  if (isInSession && users.isEmpty)
-                    Container(
-                      color: Colors.black54,
-                      child: const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(color: Colors.white),
-                            SizedBox(height: 16),
-                            Text(
-                              'Loading video...',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class VideoGrid extends StatelessWidget {
-  final List<ZoomVideoSdkUser> users;
-  final String? activeSpeakerId;
-  final Function(String) onSpeakerChange;
-
-  const VideoGrid({
-    super.key,
-    required this.users,
-    this.activeSpeakerId,
-    required this.onSpeakerChange,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-
-    if (users.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    // For more than 2 users, show grid layout
-    if (users.length > 2) {
-      return _buildGridLayout(screenHeight, screenWidth);
-    }
-
-    // Find active speaker - special logic for 2 users
-    ZoomVideoSdkUser activeSpeaker;
-    if (users.length == 2) {
-      // When only 2 users, show remote user in main view
-      activeSpeaker = users[1]; // Second user is remote user
-    } else if (activeSpeakerId != null) {
-      try {
-        activeSpeaker =
-            users.firstWhere((user) => user.userId == activeSpeakerId);
-      } catch (e) {
-        // If active speaker not found, use first user
-        activeSpeaker = users.first;
-      }
-    } else {
-      // No active speaker set, use first user
-      activeSpeaker = users.first;
-    }
-
-    debugPrint(
-        'Active speaker: ${activeSpeaker.userId}, Total users: ${users.length}');
-
-    final otherUsers =
-        users.where((user) => user.userId != activeSpeaker.userId).toList();
-
+    double aspectRatio = screenWidth / screenHeight;
+    print("aspect ratio $aspectRatio");
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SizedBox(
-        height: screenHeight,
-        width: screenWidth,
-        child: Stack(
-          children: [
-            // Fullscreen active speaker
-            Positioned.fill(
-              child: _VideoTile(user: activeSpeaker, isMainView: true),
-            ),
-
-            // ✅ Top-left user name overlay
-            Positioned(
-              top: 16,
-              left: 16,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  activeSpeaker.userName ?? "Unknown",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-
-            // Small user tiles in top-right corner
-            if (otherUsers.isNotEmpty)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final screenWidth = MediaQuery.of(context).size.width;
-
-                    // Determine tile size based on device width
-                    final tileWidth = screenWidth > 600 ? 250.0 : 90.0;   // Tablet:180, phone:90
-                    final tileHeight = screenWidth > 600 ? 300.0 : 120.0; // Tablet:180, phone:120
-                    final tileMargin = screenWidth > 600 ? 12.0 : 8.0;
-
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: otherUsers.asMap().entries.map((entry) {
-                        ZoomVideoSdkUser user = entry.value;
-                        return Container(
-                          // height: tileHeight,
-                          width: tileWidth,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16)
-                          ),
-                          child: AspectRatio(
-                            aspectRatio: 9/16,
-                            child: GestureDetector(
-                              onTap: () {
-                                debugPrint('Manually switching to user: ${user.userId}');
-                                onSpeakerChange(user.userId);
-                              },
-                              child: _VideoTile(user: user, isMainView: false),
-                            )
-                          ),
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
-              )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGridLayout(double screenHeight, double screenWidth) {
-    int crossAxisCount = users.length <= 4 ? 2 : 3;
-    int rowCount = (users.length / crossAxisCount).ceil();
-    
-    return SizedBox(
-      width: screenWidth,
-      height: screenHeight - 80, // Reserve space for control bar
-      child: Column(
-        children: List.generate(rowCount, (rowIndex) {
-          return Expanded(
-            child: Row(
-              children: List.generate(crossAxisCount, (colIndex) {
-                int userIndex = rowIndex * crossAxisCount + colIndex;
-                if (userIndex >= users.length) return Expanded(child: Container());
-                
-                return Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: _VideoTile(user: users[userIndex], isMainView: false),
-                        ),
-                        Positioned(
-                          bottom: 4,
-                          left: 4,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: Text(
-                              users[userIndex].userName ?? "Unknown",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class _VideoTile extends StatelessWidget {
-  final ZoomVideoSdkUser user;
-  final bool isMainView;
-
-  const _VideoTile({required this.user, this.isMainView = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black,
-      borderRadius: isMainView ? null : BorderRadius.circular(8),
-      child: ClipRRect(
-        borderRadius: isMainView ? BorderRadius.zero : BorderRadius.circular(8),
-        child: SizedBox.expand(
-          child: FutureBuilder<bool>(
-            key: Key('${user.userId}_video_status'),
-            future: user.videoStatus?.isOn(),
-            builder: (context, snapshot) {
-              final isVideoOn = snapshot.data ?? false;
-
-              if (!isVideoOn) {
-                return Container(
-                  color: Colors.grey[800],
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.person,
-                          size: isMainView ? 80 : 40,
-                          color: Colors.white70,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          user.userName ?? "Unknown",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: isMainView ? 18 : 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return zoom_view.View(
-                key: Key('${user.userId}_video'),
-                creationParams: {
-                  "userId": user.userId,
-                  "videoAspect": VideoAspect.FullFilled,
-                  "fullScreen": false,
-                },
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-
-
-class ControlBar extends StatefulWidget {
-  final bool isMuted;
-  final bool isVideoOn;
-  final bool isScreenSharing;
-  final VoidCallback onLeaveSession;
-  final Function(bool, bool, bool) onStateUpdate;
-  final ZoomVideoSdk zoom; // Add this
-
-  const ControlBar({
-    super.key,
-    required this.isMuted,
-    required this.isVideoOn,
-    required this.isScreenSharing,
-    required this.onLeaveSession,
-    required this.onStateUpdate,
-    required this.zoom, // Add this
-  });
-
-  @override
-  State<ControlBar> createState() => _ControlBarState();
-}
-
-class _ControlBarState extends State<ControlBar> {
-  late ZoomVideoSdk zoom; // ✅ Use late keyword
-  late bool currentMuted;
-  late bool currentVideoOn;
-  late bool currentScreenSharing;
-  int unreadMessages = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    zoom = widget.zoom;
-    currentMuted = widget.isMuted;
-    currentVideoOn = widget.isVideoOn;
-    currentScreenSharing = widget.isScreenSharing;
-    ChatManager().setMessageCallback(() {
-      if (mounted) {
-        setState(() {
-          unreadMessages = ChatManager().unreadCount;
-        });
-      }
-    });
-  }
-
-  /*@override
-  void didUpdateWidget(ControlBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    currentMuted = widget.isMuted;
-    currentVideoOn = widget.isVideoOn;
-    currentScreenSharing = widget.isScreenSharing;
-  }*/
-
-  Future toggleAudio() async {
-    final mySelf = await zoom.session.getMySelf();
-    if (mySelf?.audioStatus == null) return;
-    final isMuted = await mySelf!.audioStatus!.isMuted();
-    if (isMuted) {
-      await zoom.audioHelper.unMuteAudio(mySelf.userId);
-    } else {
-      await zoom.audioHelper.muteAudio(mySelf.userId);
-    }
-    final newMuted = !isMuted;
-    setState(() {
-      currentMuted = newMuted;
-    });
-    widget.onStateUpdate(newMuted, currentVideoOn, currentScreenSharing);
-  }
-
-  Future toggleVideo() async {
-    final mySelf = await zoom.session.getMySelf();
-    if (mySelf?.videoStatus == null) return;
-    final isOn = await mySelf!.videoStatus!.isOn();
-    if (isOn) {
-      await zoom.videoHelper.stopVideo();
-    } else {
-      await zoom.videoHelper.startVideo();
-    }
-    final newVideoOn = !isOn;
-    setState(() {
-      currentVideoOn = newVideoOn;
-    });
-    widget.onStateUpdate(currentMuted, newVideoOn, currentScreenSharing);
-  }
-
-  Future switchCamera() async {
-    try {
-      // Pass null to switch to next available camera (front/back)
-      bool success = await zoom.videoHelper.switchCamera(null);
-      debugPrint('Camera switch success: $success');
-    } catch (e) {
-      debugPrint('Error switching camera: $e');
-    }
-  }
-
-  Future toggleScreenShare() async {
-    try {
-      if (currentScreenSharing) {
-        String? result = await zoom.shareHelper.stopShare();
-        debugPrint('Stop screen share result: ${result ?? "Success"}');
-      } else {
-        await zoom.shareHelper.shareScreen();
-        debugPrint('Screen share started');
-      }
-      setState(() {
-        currentScreenSharing = !currentScreenSharing;
-      });
-    } catch (e) {
-      debugPrint('Error toggling screen share: $e');
-    }
-  }
-
-  Future leaveSession() async {
-    await zoom.leaveSession(false);
-    if (mounted) {
-      Navigator.of(context).pop(); // Pops current screen
-    }
-    widget.onLeaveSession();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // final double circleButtonSize = 28.0; // icon size inside the circle
-    // final double circleButtonPadding =
-    //     16.0; // padding around the icon for circle size
-
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 600 ? 12 : 24),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isTablet = constraints.maxWidth >= 600;
-            final iconSize = isTablet ? 32.0 : 24.0;
-            final padding = isTablet ? 16.0 : 8.0;
-            final spacing = isTablet ? 12.0 : 6.0;
-
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Stack(
-                    children: [
-                      CircleIconButton(
-                        icon: Icons.chat,
-                        iconColor: Colors.blue,
-                        backgroundColor: Colors.white,
-                        tooltip: "Chat",
-                        onPressed: () {
-                          ChatManager().clearUnreadCount();
+      backgroundColor: Colors.black,
+      body: Center(
+        child: isInSession == false
+            ? isLoading
+                ? LoadingWidget(text: 'Connecting to session...')
+                : ElevatedButton(
+                    onPressed: startSession,
+                    child: Text('Start Session'),
+                  )
+            : isInSession && users.isEmpty
+                ? LoadingWidget(text: 'Loading video...')
+                : aspectRatio > .5
+                    ? TabViewSingle(
+                        users: users,
+                        activeSpeakerId: activeSpeakerId,
+                        onSpeakerChange: (userId) {
                           setState(() {
-                            unreadMessages = 0;
+                            activeSpeakerId = userId;
                           });
-                          showModalBottomSheet(
-                            backgroundColor: Colors.white,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(20),
-                              ),
-                            ),
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (context) => ChatSheet(zoom: zoom),
-                          );
+                        },
+                        isMuted: isMuted,
+                        isVideoOn: isVideoOn,
+                        isScreenSharing: isScreenSharing,
+                        onLeaveSession: handleLeaveSession,
+                        zoom: zoom,
+                        onStateUpdate: (muted, video, screen) {
+                          setState(() {
+                            isMuted = muted;
+                            isVideoOn = video;
+                            isScreenSharing = screen;
+                          });
+                        },
+                      )
+                    : MobileViewSingle(
+                        users: users,
+                        activeSpeakerId: activeSpeakerId,
+                        onSpeakerChange: (userId) {
+                          setState(() {
+                            activeSpeakerId = userId;
+                          });
+                        },
+                        isMuted: isMuted,
+                        isVideoOn: isVideoOn,
+                        isScreenSharing: isScreenSharing,
+                        onLeaveSession: handleLeaveSession,
+                        zoom: zoom,
+                        onStateUpdate: (muted, video, screen) {
+                          setState(() {
+                            isMuted = muted;
+                            isVideoOn = video;
+                            isScreenSharing = screen;
+                          });
                         },
                       ),
-                      if (unreadMessages > 0)
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 20,
-                              minHeight: 20,
-                            ),
-                            child: Text(
-                              unreadMessages > 99 ? '99+' : unreadMessages.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  SizedBox(width: spacing),
-                  CircleIconButton(
-                    icon: currentMuted ? Icons.mic_off : Icons.mic,
-                    iconColor: Colors.blue,
-                    backgroundColor: Colors.white,
-                    tooltip: currentMuted ? "Unmute" : "Mute",
-                    onPressed: toggleAudio,
-                  ),
-                  SizedBox(width: spacing),
-                  CircleIconButton(
-                    icon: currentVideoOn ? Icons.videocam : Icons.videocam_off,
-                    iconColor: Colors.blue,
-                    backgroundColor: Colors.white,
-                    tooltip: currentVideoOn ? "Turn Video Off" : "Turn Video On",
-                    onPressed: toggleVideo,
-                  ),
-                  SizedBox(width: spacing),
-                  CircleIconButton(
-                    icon: Icons.flip_camera_ios,
-                    iconColor: Colors.blue,
-                    backgroundColor: Colors.white,
-                    tooltip: "Switch Camera",
-                    onPressed: switchCamera,
-                  ),
-                  SizedBox(width: spacing),
-                  CircleIconButton(
-                    icon: currentScreenSharing
-                        ? Icons.stop_screen_share
-                        : Icons.screen_share,
-                    iconColor: currentScreenSharing ? Colors.red : Colors.blue,
-                    backgroundColor: Colors.white,
-                    tooltip: currentScreenSharing ? "Stop Sharing" : "Share Screen",
-                    onPressed: toggleScreenShare,
-                  ),
-                  SizedBox(width: spacing),
-                  CircleIconButton(
-                    icon: Icons.call_end,
-                    iconColor: Colors.white,
-                    backgroundColor: Colors.red,
-                    tooltip: "Leave Call",
-                    onPressed: leaveSession,
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
       ),
     );
   }

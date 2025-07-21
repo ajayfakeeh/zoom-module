@@ -34,7 +34,7 @@ String generateJwt(String sessionName, String roleType, String appKey, String ap
       },
     );
     var token = jwt.sign(SecretKey(appSecret));
-    print("token............."+token);
+    print("token.............$token");
     return token;
   } catch (e) {
     debugPrint(e.toString());
