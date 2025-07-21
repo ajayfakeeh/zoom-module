@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:zoom_module/zoomintegration/ChatManager.dart';
 import 'package:zoom_module/zoomintegration/ChatSheet.dart';
-import 'package:android_intent_plus/android_intent.dart';
 import 'package:zoom_module/zoomintegration/widgets/circle_icon_button.dart';
 
 class ControlBar extends StatefulWidget {
-  final bool isMuted, isVideoOn, isScreenSharing;
+  final bool isMuted;
+  final bool isVideoOn;
+  final bool isScreenSharing;
   final VoidCallback onLeaveSession;
   final Function(bool, bool, bool) onStateUpdate;
-  final ZoomVideoSdk zoom;
+  final ZoomVideoSdk zoom; // Add this
 
   const ControlBar({
     super.key,
@@ -21,271 +20,264 @@ class ControlBar extends StatefulWidget {
     required this.isScreenSharing,
     required this.onLeaveSession,
     required this.onStateUpdate,
-    required this.zoom,
+    required this.zoom, // Add this
   });
 
   @override
-  _ControlBarState createState() => _ControlBarState();
+  State<ControlBar> createState() => _ControlBarState();
 }
 
-class _ControlBarState extends State<ControlBar> with WidgetsBindingObserver {
-  late ZoomVideoSdk zoom;
-  late bool currentMuted, currentVideoOn, currentScreenSharing;
-  bool _videoToggleInProgress = false;
-  bool _shareToggleInProgress = false;
+class _ControlBarState extends State<ControlBar> {
+  late ZoomVideoSdk zoom; // ✅ Use late keyword
+  late bool currentMuted;
+  late bool currentVideoOn;
+  late bool currentScreenSharing;
   int unreadMessages = 0;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     zoom = widget.zoom;
     currentMuted = widget.isMuted;
     currentVideoOn = widget.isVideoOn;
     currentScreenSharing = widget.isScreenSharing;
-    ChatManager().setMessageCallback(_onChatUpdate);
-  }
-
-  void _onChatUpdate() {
-    if (mounted) {
-      setState(() => unreadMessages = ChatManager().unreadCount);
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    // ChatManager().clearMessageCallback();
-    _stopAllVideoResources();
-    super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(ControlBar old) {
-    super.didUpdateWidget(old);
-    if (widget.isMuted != old.isMuted ||
-        widget.isVideoOn != old.isVideoOn ||
-        widget.isScreenSharing != old.isScreenSharing) {
-      setState(() {
-        currentMuted = widget.isMuted;
-        currentVideoOn = widget.isVideoOn;
-        currentScreenSharing = widget.isScreenSharing;
-      });
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _stopAllVideoResources();
-    }
-  }
-
-  Future<void> _stopAllVideoResources() async {
-    try { await zoom.videoHelper.stopVideo(); } catch (_) {}
-    try { await zoom.shareHelper.stopShare(); } catch (_) {}
-  }
-
-  Future<void> _toggleAudio() async {
-    final me = await zoom.session.getMySelf();
-    if (me?.audioStatus == null) return;
-    final muted = await me!.audioStatus!.isMuted();
-    try {
-      if (muted) await zoom.audioHelper.unMuteAudio(me.userId);
-      else await zoom.audioHelper.muteAudio(me.userId);
-
-      setState(() => currentMuted = !muted);
-      widget.onStateUpdate(currentMuted, currentVideoOn, currentScreenSharing);
-    } catch (e) {
-      debugPrint('Audio toggle failed: $e');
-    }
-  }
-
-  Future<void> _toggleVideo() async {
-    if (_videoToggleInProgress) return;
-    _videoToggleInProgress = true;
-
-    try {
-      final me = await zoom.session.getMySelf();
-      if (me?.videoStatus == null) return;
-      final isOn = await me!.videoStatus!.isOn();
-
-      if (isOn) {
-        await zoom.videoHelper.stopVideo();
-      } else {
-        final perm = await Permission.microphone.request();
-        if (!perm.isGranted) return;
-        await zoom.videoHelper.startVideo();
+    ChatManager().setMessageCallback(() {
+      if (mounted) {
+        setState(() {
+          unreadMessages = ChatManager().unreadCount;
+        });
       }
-
-      setState(() => currentVideoOn = !isOn);
-      widget.onStateUpdate(currentMuted, currentVideoOn, currentScreenSharing);
-    } catch (e) {
-      debugPrint('Video toggle failed: $e');
-    } finally {
-      _videoToggleInProgress = false;
-    }
+    });
   }
 
-  Future<void> _switchCamera() async {
+  /*@override
+  void didUpdateWidget(ControlBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    currentMuted = widget.isMuted;
+    currentVideoOn = widget.isVideoOn;
+    currentScreenSharing = widget.isScreenSharing;
+  }*/
+
+  Future toggleAudio() async {
+    final mySelf = await zoom.session.getMySelf();
+    if (mySelf?.audioStatus == null) return;
+    final isMuted = await mySelf!.audioStatus!.isMuted();
+    if (isMuted) {
+      await zoom.audioHelper.unMuteAudio(mySelf.userId);
+    } else {
+      await zoom.audioHelper.muteAudio(mySelf.userId);
+    }
+    final newMuted = !isMuted;
+    setState(() {
+      currentMuted = newMuted;
+    });
+    widget.onStateUpdate(newMuted, currentVideoOn, currentScreenSharing);
+  }
+
+  Future toggleVideo() async {
+    final mySelf = await zoom.session.getMySelf();
+    if (mySelf?.videoStatus == null) return;
+    final isOn = await mySelf!.videoStatus!.isOn();
+    if (isOn) {
+      await zoom.videoHelper.stopVideo();
+    } else {
+      await zoom.videoHelper.startVideo();
+    }
+    final newVideoOn = !isOn;
+    setState(() {
+      currentVideoOn = newVideoOn;
+    });
+    widget.onStateUpdate(currentMuted, newVideoOn, currentScreenSharing);
+  }
+
+  Future switchCamera() async {
     try {
-      final ok = await zoom.videoHelper.switchCamera(null);
-      debugPrint('Camera switched: $ok');
+      // Pass null to switch to next available camera (front/back)
+      bool success = await zoom.videoHelper.switchCamera(null);
+      debugPrint('Camera switch success: $success');
     } catch (e) {
-      debugPrint('Switch camera error: $e');
+      debugPrint('Error switching camera: $e');
     }
   }
 
-  Future<void> _toggleShare() async {
-    if (_shareToggleInProgress) return;
-    _shareToggleInProgress = true;
+  Future<void> requestPermissions() async {
+    final microphone = await Permission.microphone.request();
+    final overlay = await Permission.systemAlertWindow.request();
 
+    if (!microphone.isGranted || !overlay.isGranted) {
+      debugPrint('❌ Required permissions not granted');
+      return;
+    }
+  }
+
+  Future toggleScreenShare() async {
     try {
       if (currentScreenSharing) {
-        await zoom.shareHelper.stopShare();
+        String? result = await zoom.shareHelper.stopShare();
+        debugPrint('Stop screen share result: ${result ?? "Success"}');
       } else {
-        final mic = await Permission.microphone.request();
-        final overlayGranted = await Permission.systemAlertWindow.isGranted;
-
-        if (!mic.isGranted || !overlayGranted) {
-          // Open overlay settings if not granted
-          if (!overlayGranted) {
-            await _promptOverlayPermission();
-          }
-
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Microphone & overlay permissions required.'),
-          ));
-          return;
-        }
-
-        // Now safe to share screen
-        await zoom.shareHelper.shareScreen().timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            throw Exception("Screen share request timed out");
-          },
-        );
+        await requestPermissions();
+        await zoom.shareHelper.shareScreen();
+        debugPrint('Screen share started');
       }
-
-      setState(() => currentScreenSharing = !currentScreenSharing);
-      widget.onStateUpdate(currentMuted, currentVideoOn, currentScreenSharing);
+      setState(() {
+        currentScreenSharing = !currentScreenSharing;
+      });
     } catch (e) {
-      debugPrint('❌ Share toggle failed: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to share screen: $e")),
-      );
-    } finally {
-      _shareToggleInProgress = false;
+      debugPrint('Error toggling screen share: $e');
     }
   }
 
-  Future<void> _promptOverlayPermission() async {
-    final intent = AndroidIntent(
-      action: 'android.settings.action.MANAGE_OVERLAY_PERMISSION',
-      data: 'package:your.package.name', // replace with your app's package name
-    );
-    await intent.launch();
-  }
-
-
-  Future<void> _leaveSession() async {
+  Future leaveSession() async {
     await zoom.leaveSession(false);
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) {
+      Navigator.of(context).pop(); // Pops current screen
+    }
     widget.onLeaveSession();
   }
 
   @override
-  Widget build(BuildContext c) {
-    final isTablet = MediaQuery.of(c).size.width >= 600;
-    final spacing = isTablet ? 12.0 : 6.0;
+  Widget build(BuildContext context) {
+    // final double circleButtonSize = 28.0; // icon size inside the circle
+    // final double circleButtonPadding =
+    //     16.0; // padding around the icon for circle size
 
     return Align(
       alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: EdgeInsets.all(spacing * 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildChatButton(),
-            _buildIconButton(
-                currentMuted ? Icons.mic_off : Icons.mic,
-                currentMuted ? 'Unmute' : 'Mute',
-                _toggleAudio),
-            _buildIconButton(
-                currentVideoOn ? Icons.videocam : Icons.videocam_off,
-                currentVideoOn ? 'Stop Video' : 'Start Video',
-                _toggleVideo),
-            _buildIconButton(
-                Icons.flip_camera_ios, 'Switch Camera', _switchCamera),
-            _buildIconButton(
-                currentScreenSharing
+      child: Container(
+        padding:
+            EdgeInsets.all(MediaQuery.of(context).size.width < 600 ? 12 : 24),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isTablet = constraints.maxWidth >= 600;
+            final iconSize = isTablet ? 32.0 : 24.0;
+            final spacing = isTablet ? 12.0 : 6.0;
+
+            // List of buttons wrapped in widgets to set size, padding, tooltip etc.
+            final buttons = [
+              // Chat button with badge
+              Stack(
+                children: [
+                  CircleIconButton(
+                    icon: Icons.chat,
+                    iconColor: Colors.blue,
+                    backgroundColor: Colors.white,
+                    tooltip: "Chat",
+                    onPressed: () {
+                      ChatManager().clearUnreadCount();
+                      setState(() {
+                        unreadMessages = 0;
+                      });
+                      showModalBottomSheet(
+                        backgroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (context) => ChatSheet(zoom: zoom),
+                      );
+                    },
+                  ),
+                  if (unreadMessages > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints:
+                            const BoxConstraints(minWidth: 20, minHeight: 20),
+                        child: Text(
+                          unreadMessages > 99
+                              ? '99+'
+                              : unreadMessages.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              CircleIconButton(
+                icon: currentMuted ? Icons.mic_off : Icons.mic,
+                iconColor: Colors.blue,
+                backgroundColor: Colors.white,
+                tooltip: currentMuted ? "Unmute" : "Mute",
+                onPressed: toggleAudio,
+              ),
+              CircleIconButton(
+                icon: currentVideoOn ? Icons.videocam : Icons.videocam_off,
+                iconColor: Colors.blue,
+                backgroundColor: Colors.white,
+                tooltip: currentVideoOn ? "Turn Video Off" : "Turn Video On",
+                onPressed: toggleVideo,
+              ),
+              CircleIconButton(
+                icon: Icons.flip_camera_ios,
+                iconColor: Colors.blue,
+                backgroundColor: Colors.white,
+                tooltip: "Switch Camera",
+                onPressed: switchCamera,
+              ),
+              CircleIconButton(
+                icon: currentScreenSharing
                     ? Icons.stop_screen_share
                     : Icons.screen_share,
-                currentScreenSharing ? 'Stop Share' : 'Share Screen',
-                _toggleShare,
-                color: currentScreenSharing ? Colors.red : Colors.blue),
-            _buildIconButton(Icons.call_end, 'Leave Call', _leaveSession,
-                backgroundColor: Colors.red),
-          ],
+                iconColor: currentScreenSharing ? Colors.red : Colors.blue,
+                backgroundColor: Colors.white,
+                tooltip: currentScreenSharing ? "Stop Sharing" : "Share Screen",
+                onPressed: toggleScreenShare,
+              ),
+              CircleIconButton(
+                icon: Icons.call_end,
+                iconColor: Colors.white,
+                backgroundColor: Colors.red,
+                tooltip: "Leave Call",
+                onPressed: leaveSession,
+              ),
+            ];
+
+            if (isTablet) {
+              // Tablet: Scrollable horizontal row with spacing
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: buttons
+                      .map((btn) => Padding(
+                            padding: EdgeInsets.only(right: spacing),
+                            child: btn,
+                          ))
+                      .toList(),
+                ),
+              );
+            } else {
+              // Mobile: Expanded buttons inside a Row to fill width evenly
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: buttons
+                    .map((btn) => Expanded(
+                          child: Padding(
+                            padding:
+                                EdgeInsets.symmetric(horizontal: spacing / 2),
+                            child: btn,
+                          ),
+                        ))
+                    .toList(),
+              );
+            }
+          },
         ),
       ),
     );
   }
-
-  Widget _buildChatButton() => Stack(
-    children: [
-      _buildIconButton(Icons.chat, 'Chat', () {
-        HapticFeedback.selectionClick();
-        ChatManager().clearUnreadCount();
-        setState(() => unreadMessages = 0);
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          shape: const RoundedRectangleBorder(
-              borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20))),
-          builder: (_) => ChatSheet(zoom: zoom),
-        );
-      }),
-      if (unreadMessages > 0)
-        Positioned(
-          right: 0,
-          top: 0,
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-                color: Colors.red, borderRadius: BorderRadius.circular(8)),
-            constraints:
-            const BoxConstraints(minWidth: 20, minHeight: 20),
-            child: Text(
-              unreadMessages > 99 ? '99+' : '$unreadMessages',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        )
-    ],
-  );
-
-  Widget _buildIconButton(IconData icon, String label, VoidCallback onTap,
-      {Color color = Colors.blue,
-        Color backgroundColor = Colors.white}) =>
-      Semantics(
-        label: label,
-        button: true,
-        child: CircleIconButton(
-          icon: icon,
-          iconColor: color,
-          backgroundColor: backgroundColor,
-          tooltip: label,
-          onPressed: () {
-            HapticFeedback.selectionClick();
-            onTap();
-          },
-        ),
-      );
 }

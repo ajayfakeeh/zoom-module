@@ -8,6 +8,7 @@ import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_event_listener.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:zoom_module/zoomintegration/ChatManager.dart';
 import 'package:zoom_module/zoomintegration/mobile_view_single.dart';
 import 'package:zoom_module/zoomintegration/tab_view_single.dart';
 import 'package:zoom_module/zoomintegration/utils/jwt.dart';
@@ -94,6 +95,8 @@ class _VideochatState extends State<Videochat> {
     final isMutedState = await mySelf.audioStatus?.isMuted() ?? true;
     final isVideoOnState = await mySelf.videoStatus?.isOn() ?? false;
 
+    ChatManager().initialize(mySelf.userId);
+
     WakelockPlus.enable();
 
     setState(() {
@@ -121,6 +124,8 @@ class _VideochatState extends State<Videochat> {
 
     final remoteUsers = await zoom.session.getRemoteUsers() ?? [];
     final allUsers = [mySelf, ...remoteUsers];
+
+    ChatManager().dispose();
 
     setState(() {
       users = List<ZoomVideoSdkUser>.from(allUsers);
