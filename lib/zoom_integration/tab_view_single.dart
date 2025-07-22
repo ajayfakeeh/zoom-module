@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
-import 'package:zoom_module/zoomintegration/tab_view_multiple.dart';
-import 'package:zoom_module/zoomintegration/widgets/control_bar.dart';
-import 'package:zoom_module/zoomintegration/widgets/floating_user_widget.dart';
-import 'package:zoom_module/zoomintegration/widgets/user_name_bottom.dart';
-import 'package:zoom_module/zoomintegration/widgets/video_widget.dart';
+import 'package:zoom_module/zoom_integration/tab_view_multiple.dart';
+import 'package:zoom_module/zoom_integration/widgets/control_bar.dart';
+import 'package:zoom_module/zoom_integration/widgets/floating_user_widget.dart';
+import 'package:zoom_module/zoom_integration/widgets/user_name_bottom.dart';
+import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 
 class TabViewSingle extends StatefulWidget {
   final List<ZoomVideoSdkUser> users;
@@ -17,7 +17,8 @@ class TabViewSingle extends StatefulWidget {
   final bool isScreenSharing;
   final VoidCallback onLeaveSession;
   final Function(bool, bool, bool) onStateUpdate;
-  final ZoomVideoSdk zoom; // Add this
+  final ZoomVideoSdk zoom;
+
   const TabViewSingle({
     super.key,
     required this.users,
@@ -37,6 +38,7 @@ class TabViewSingle extends StatefulWidget {
 
 class _TabViewSingleState extends State<TabViewSingle> {
   ZoomVideoSdkUser? activeSpeaker;
+  bool _isManualSpeakerChange = false;
 
   @override
   void initState() {
@@ -44,9 +46,8 @@ class _TabViewSingleState extends State<TabViewSingle> {
     findActiveSpeaker();
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
+      const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         systemNavigationBarColor: Colors.black,
         statusBarIconBrightness: Brightness.light,
@@ -58,7 +59,10 @@ class _TabViewSingleState extends State<TabViewSingle> {
   @override
   void didUpdateWidget(covariant TabViewSingle oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // If users list or activeSpeakerId changed, update activeSpeaker
+
+    // Skip auto speaker update if user changed it manually
+    if (_isManualSpeakerChange) return;
+
     if (oldWidget.users != widget.users ||
         oldWidget.activeSpeakerId != widget.activeSpeakerId) {
       findActiveSpeaker();
@@ -69,22 +73,19 @@ class _TabViewSingleState extends State<TabViewSingle> {
     ZoomVideoSdkUser? newActiveSpeaker;
 
     if (widget.users.length == 2) {
-      // When exactly 2 users, show remote user in main view
       newActiveSpeaker = widget.users[1];
     } else if (widget.activeSpeakerId != null) {
       try {
         newActiveSpeaker = widget.users
             .firstWhere((user) => user.userId == widget.activeSpeakerId);
-      } catch (e) {
-        // If active speaker not found, fallback to first user
+      } catch (_) {
         newActiveSpeaker = widget.users.first;
       }
     } else {
-      // No active speaker set, fallback to first user
       newActiveSpeaker = widget.users.first;
     }
 
-    if (newActiveSpeaker?.userId != activeSpeaker?.userId) {
+    if (newActiveSpeaker.userId != activeSpeaker?.userId) {
       setState(() {
         activeSpeaker = newActiveSpeaker;
       });
@@ -94,13 +95,29 @@ class _TabViewSingleState extends State<TabViewSingle> {
         'Active speaker updated: ${activeSpeaker?.userId}, Total users: ${widget.users.length}');
   }
 
+  void _handleManualSwitch(ZoomVideoSdkUser user) {
+    setState(() {
+      _isManualSpeakerChange = true;
+      widget.onSpeakerChange(user.userId);
+      activeSpeaker = user;
+
+      // Optional: reset manual override after 10 seconds
+      Future.delayed(const Duration(seconds: 10), () {
+        if (mounted) {
+          setState(() {
+            _isManualSpeakerChange = false;
+          });
+        }
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.users.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // For more than 2 users, use multi-user grid view
     if (widget.users.length > 2) {
       return TabViewMultiple(
         users: widget.users,
@@ -146,13 +163,7 @@ class _TabViewSingleState extends State<TabViewSingle> {
                 right: 16,
                 child: FloatingUserWidget(
                   otherUsers: otherUsers,
-                  onTap: (user) {
-                    debugPrint('Manually switching to user: ${user.userId}');
-                    setState(() {
-                      widget.onSpeakerChange(user.userId);
-                      activeSpeaker = user;
-                    });
-                  },
+                  onTap: _handleManualSwitch,
                 ),
               ),
           ],

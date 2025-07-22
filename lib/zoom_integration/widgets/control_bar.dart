@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:zoom_module/zoomintegration/ChatManager.dart';
-import 'package:zoom_module/zoomintegration/ChatSheet.dart';
-import 'package:zoom_module/zoomintegration/widgets/circle_icon_button.dart';
+import 'package:zoom_module/zoom_integration/chat_manager.dart';
+import 'package:zoom_module/zoom_integration/chat_sheet.dart';
+import 'package:zoom_module/zoom_integration/widgets/circle_icon_button.dart';
 
 class ControlBar extends StatefulWidget {
   final bool isMuted;
@@ -150,7 +150,6 @@ class _ControlBarState extends State<ControlBar> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isTablet = constraints.maxWidth >= 600;
-            final iconSize = isTablet ? 32.0 : 24.0;
             final spacing = isTablet ? 12.0 : 6.0;
 
             // List of buttons wrapped in widgets to set size, padding, tooltip etc.
@@ -182,8 +181,8 @@ class _ControlBarState extends State<ControlBar> {
                   ),
                   if (unreadMessages > 0)
                     Positioned(
-                      right: 0,
-                      top: 0,
+                      right: 5,
+                      top: 5,
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(

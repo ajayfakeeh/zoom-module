@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
-import 'package:zoom_module/zoomintegration/widgets/circle_icon_button.dart';
-import 'package:zoom_module/zoomintegration/widgets/control_bar.dart';
-import 'package:zoom_module/zoomintegration/widgets/user_name_bottom.dart';
-import 'package:zoom_module/zoomintegration/widgets/video_widget.dart';
+import 'package:zoom_module/zoom_integration/widgets/circle_icon_button.dart';
+import 'package:zoom_module/zoom_integration/widgets/control_bar.dart';
+import 'package:zoom_module/zoom_integration/widgets/user_name_bottom.dart';
+import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 
 class TabViewMultiple extends StatefulWidget {
   final List<ZoomVideoSdkUser> users;

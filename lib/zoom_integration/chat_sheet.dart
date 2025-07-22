@@ -4,10 +4,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
-import 'package:html_unescape/html_unescape.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'ChatManager.dart';
+import 'chat_manager.dart';
 
 class ChatSheet extends StatefulWidget {
   final ZoomVideoSdk zoom;
@@ -66,40 +65,40 @@ class _ChatSheetState extends State<ChatSheet> {
     myUserId = mySelf?.userId;
   }
 
-  void _handleNewMessage(dynamic data) {
-    try {
-      final messageData = data is String ? jsonDecode(data) : data;
-      final messageMap = messageData['message'] is String 
-          ? jsonDecode(messageData['message']) 
-          : messageData['message'];
-      
-      String senderId = '';
-      if (messageMap['senderUser'] != null) {
-        try {
-          final unescape = HtmlUnescape();
-          final senderUserString = messageMap["senderUser"];
-          final decodedString = unescape.convert(senderUserString);
-          final senderUserMap = jsonDecode(decodedString);
-          senderId = senderUserMap['userId'] ?? '';
-        } catch (e) {
-          debugPrint("Error parsing sender: $e");
-        }
-      }
-      
-      final content = messageMap['content'] ?? 'No message';
-      final isMe = senderId == myUserId;
-      
-      // Try to parse JSON message
-      try {
-        final jsonContent = jsonDecode(content);
-        // Messages now handled by ChatManager
-      } catch (e) {
-        // Messages now handled by ChatManager
-      }
-    } catch (e) {
-      debugPrint("Error handling message: $e");
-    }
-  }
+  // void _handleNewMessage(dynamic data) {
+  //   try {
+  //     final messageData = data is String ? jsonDecode(data) : data;
+  //     final messageMap = messageData['message'] is String
+  //         ? jsonDecode(messageData['message'])
+  //         : messageData['message'];
+  //
+  //     String senderId = '';
+  //     if (messageMap['senderUser'] != null) {
+  //       try {
+  //         final unescape = HtmlUnescape();
+  //         final senderUserString = messageMap["senderUser"];
+  //         final decodedString = unescape.convert(senderUserString);
+  //         final senderUserMap = jsonDecode(decodedString);
+  //         senderId = senderUserMap['userId'] ?? '';
+  //       } catch (e) {
+  //         debugPrint("Error parsing sender: $e");
+  //       }
+  //     }
+  //
+  //     // final content = messageMap['content'] ?? 'No message';
+  //     // final isMe = senderId == myUserId;
+  //     //
+  //     // Try to parse JSON message
+  //     try {
+  //       final jsonContent = jsonDecode(content);
+  //       // Messages now handled by ChatManager
+  //     } catch (e) {
+  //       // Messages now handled by ChatManager
+  //     }
+  //   } catch (e) {
+  //     debugPrint("Error handling message: $e");
+  //   }
+  // }
 
   /*void _sendMessage() async {
     final text = _controller.text.trim();

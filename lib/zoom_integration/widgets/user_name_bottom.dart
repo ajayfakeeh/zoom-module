@@ -13,7 +13,7 @@ class UserNameBottom extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(6, 2, 6, 2),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black45,
           borderRadius: BorderRadius.circular(3),
         ),
         child: Text(

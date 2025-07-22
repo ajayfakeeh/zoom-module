@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_event_listener.dart';
 import 'package:html_unescape/html_unescape.dart';
-import 'ChatSheet.dart';
+import 'chat_sheet.dart';
 
 class ChatManager {
   static final ChatManager _instance = ChatManager._internal();
@@ -19,14 +19,23 @@ class ChatManager {
   List<ChatMessage> get messages => _messages;
   int get unreadCount => _unreadCount;
 
-  void initialize(String myUserId) {
+  void initialize(String myUserId, ZoomVideoSdkEventListener listener) {
     _myUserId = myUserId;
     _chatSubscription?.cancel();
-    _chatSubscription = ZoomVideoSdkEventListener().addListener(
+    _chatSubscription = listener.addListener(
       EventType.onChatNewMessageNotify,
       _handleNewMessage,
     );
   }
+
+  // void initialize(String myUserId) {
+  //   _myUserId = myUserId;
+  //   _chatSubscription?.cancel();
+  //   _chatSubscription = ZoomVideoSdkEventListener().addListener(
+  //     EventType.onChatNewMessageNotify,
+  //     _handleNewMessage,
+  //   );
+  // }
 
   void setMessageCallback(VoidCallback? callback) {
     _onMessageReceived = callback;

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
-import 'package:zoom_module/zoomintegration/widgets/floating_user_widget.dart';
-import 'package:zoom_module/zoomintegration/mobile_view_multiple.dart';
-import 'package:zoom_module/zoomintegration/widgets/video_widget.dart';
+import 'package:zoom_module/zoom_integration/widgets/floating_user_widget.dart';
+import 'package:zoom_module/zoom_integration/mobile_view_multiple.dart';
+import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
-import 'package:zoom_module/zoomintegration/widgets/control_bar.dart';
+import 'package:zoom_module/zoom_integration/widgets/control_bar.dart';
 
 class MobileViewSingle extends StatefulWidget {
   final List<ZoomVideoSdkUser> users;
@@ -15,7 +15,7 @@ class MobileViewSingle extends StatefulWidget {
   final bool isScreenSharing;
   final VoidCallback onLeaveSession;
   final Function(bool, bool, bool) onStateUpdate;
-  final ZoomVideoSdk zoom; // Add this
+  final ZoomVideoSdk zoom;
 
   const MobileViewSingle({
     super.key,
@@ -27,7 +27,7 @@ class MobileViewSingle extends StatefulWidget {
     required this.isScreenSharing,
     required this.onLeaveSession,
     required this.onStateUpdate,
-    required this.zoom, // Add this
+    required this.zoom,
   });
 
   @override
@@ -36,34 +36,66 @@ class MobileViewSingle extends StatefulWidget {
 
 class _MobileViewSingleState extends State<MobileViewSingle> {
   ZoomVideoSdkUser? activeSpeaker;
+  bool _isManualSpeakerChange = false;
 
   @override
   void initState() {
-    findActiveSpeaker();
     super.initState();
+    findActiveSpeaker();
+  }
+
+  @override
+  void didUpdateWidget(covariant MobileViewSingle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isManualSpeakerChange) return;
+
+    if (oldWidget.users != widget.users ||
+        oldWidget.activeSpeakerId != widget.activeSpeakerId) {
+      findActiveSpeaker();
+    }
   }
 
   void findActiveSpeaker() {
-    // Find active speaker - special logic for 2 users
+    ZoomVideoSdkUser? newActiveSpeaker;
 
     if (widget.users.length == 2) {
-      // When only 2 users, show remote user in main view
-      activeSpeaker = widget.users[1]; // Second user is remote user
+      newActiveSpeaker = widget.users[1]; // Remote user
     } else if (widget.activeSpeakerId != null) {
       try {
-        activeSpeaker = widget.users
+        newActiveSpeaker = widget.users
             .firstWhere((user) => user.userId == widget.activeSpeakerId);
-      } catch (e) {
-        // If active speaker not found, use first user
-        activeSpeaker = widget.users.first;
+      } catch (_) {
+        newActiveSpeaker = widget.users.first;
       }
     } else {
-      // No active speaker set, use first user
-      activeSpeaker = widget.users.first;
+      newActiveSpeaker = widget.users.first;
+    }
+
+    if (newActiveSpeaker.userId != activeSpeaker?.userId) {
+      setState(() {
+        activeSpeaker = newActiveSpeaker;
+      });
     }
 
     debugPrint(
         'Active speaker: ${activeSpeaker?.userId}, Total users: ${widget.users.length}');
+  }
+
+  void _handleManualSwitch(ZoomVideoSdkUser user) {
+    setState(() {
+      _isManualSpeakerChange = true;
+      widget.onSpeakerChange(user.userId);
+      activeSpeaker = user;
+
+      // Optional: reset manual override after 10 seconds
+      Future.delayed(const Duration(seconds: 10), () {
+        if (mounted) {
+          setState(() {
+            _isManualSpeakerChange = false;
+          });
+        }
+      });
+    });
   }
 
   @override
@@ -72,7 +104,6 @@ class _MobileViewSingleState extends State<MobileViewSingle> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // For more than 2 users, show grid layout
     if (widget.users.length > 2) {
       return MobileViewMultiple(
         users: widget.users,
@@ -95,7 +126,7 @@ class _MobileViewSingleState extends State<MobileViewSingle> {
         backgroundColor: Colors.black,
         leading: IconButton(
           onPressed: widget.onLeaveSession,
-          icon: Icon(Icons.close, color: Colors.white),
+          icon: const Icon(Icons.close, color: Colors.white),
         ),
         centerTitle: true,
         title: Text(
@@ -135,13 +166,7 @@ class _MobileViewSingleState extends State<MobileViewSingle> {
                 right: 16,
                 child: FloatingUserWidget(
                   otherUsers: otherUsers,
-                  onTap: (user) {
-                    debugPrint('Manually switching to user: ${user.userId}');
-                    setState(() {
-                      widget.onSpeakerChange(user.userId);
-                      activeSpeaker = user;
-                    });
-                  },
+                  onTap: _handleManualSwitch,
                 ),
               ),
           ],

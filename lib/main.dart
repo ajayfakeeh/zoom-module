@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:zoom_module/zoomintegration/ZoomLauncher.dart';
+import 'package:zoom_module/zoom_integration/zoom_launcher.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

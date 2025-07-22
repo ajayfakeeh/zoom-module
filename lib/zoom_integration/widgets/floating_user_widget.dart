@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
-import 'package:zoom_module/zoomintegration/widgets/video_widget.dart';
+import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 
 class FloatingUserWidget extends StatelessWidget {
   final List<ZoomVideoSdkUser> otherUsers;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
-import 'package:zoom_module/zoomintegration/widgets/circle_icon_button.dart';
-import 'package:zoom_module/zoomintegration/widgets/video_widget.dart';
+import 'package:zoom_module/zoom_integration/widgets/circle_icon_button.dart';
+import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 
 class VideoFullScreen extends StatefulWidget {
   final ZoomVideoSdkUser user;

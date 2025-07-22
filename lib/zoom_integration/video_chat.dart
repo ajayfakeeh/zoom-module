@@ -8,11 +8,11 @@ import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_event_listener.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:zoom_module/zoomintegration/ChatManager.dart';
-import 'package:zoom_module/zoomintegration/mobile_view_single.dart';
-import 'package:zoom_module/zoomintegration/tab_view_single.dart';
-import 'package:zoom_module/zoomintegration/utils/jwt.dart';
-import 'package:zoom_module/zoomintegration/widgets/loading_widget.dart';
+import 'package:zoom_module/zoom_integration/chat_manager.dart';
+import 'package:zoom_module/zoom_integration/mobile_view_single.dart';
+import 'package:zoom_module/zoom_integration/tab_view_single.dart';
+import 'package:zoom_module/zoom_integration/utils/jwt.dart';
+import 'package:zoom_module/zoom_integration/widgets/loading_widget.dart';
 
 class Videochat extends StatefulWidget {
   final String appKey;
@@ -95,7 +95,7 @@ class _VideochatState extends State<Videochat> {
     final isMutedState = await mySelf.audioStatus?.isMuted() ?? true;
     final isVideoOnState = await mySelf.videoStatus?.isOn() ?? false;
 
-    ChatManager().initialize(mySelf.userId);
+    ChatManager().initialize(mySelf.userId, eventListener);
 
     WakelockPlus.enable();
 
@@ -125,7 +125,7 @@ class _VideochatState extends State<Videochat> {
     final remoteUsers = await zoom.session.getRemoteUsers() ?? [];
     final allUsers = [mySelf, ...remoteUsers];
 
-    ChatManager().dispose();
+    // ChatManager().dispose();
 
     setState(() {
       users = List<ZoomVideoSdkUser>.from(allUsers);
@@ -246,6 +246,7 @@ class _VideochatState extends State<Videochat> {
         isScreenSharing = false;
       });
     }
+    ChatManager().dispose();
   }
 
   @override
@@ -253,7 +254,7 @@ class _VideochatState extends State<Videochat> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
     double aspectRatio = screenWidth / screenHeight;
-    print("aspect ratio $aspectRatio");
+    debugPrint("aspect ratio $aspectRatio");
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
