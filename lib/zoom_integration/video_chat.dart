@@ -125,7 +125,6 @@ class _VideochatState extends State<Videochat> {
     final remoteUsers = await zoom.session.getRemoteUsers() ?? [];
     final allUsers = [mySelf, ...remoteUsers];
 
-    // ChatManager().dispose();
 
     setState(() {
       users = List<ZoomVideoSdkUser>.from(allUsers);
@@ -166,6 +165,33 @@ class _VideochatState extends State<Videochat> {
       activeSpeakerId = userId;
     });
   }
+
+  // void _handleActiveSpeakerChange(dynamic data) {
+  //   if (!mounted) return;
+  //
+  //   dynamic changedUsersRaw = data['changedUsers'];
+  //   List<dynamic>? changedUsers;
+  //
+  //   if (changedUsersRaw is String) {
+  //     // Decode JSON string if necessary
+  //     changedUsers = jsonDecode(changedUsersRaw) as List<dynamic>?;
+  //   } else if (changedUsersRaw is List<dynamic>) {
+  //     changedUsers = changedUsersRaw;
+  //   } else {
+  //     changedUsers = null;
+  //   }
+  //
+  //   if (changedUsers == null || changedUsers.isEmpty) return;
+  //
+  //   final String? newActiveSpeakerId = changedUsers[0]['userId'] as String?;
+  //   if (newActiveSpeakerId == null) return;
+  //
+  //   setState(() {
+  //     activeSpeakerId = newActiveSpeakerId;
+  //   });
+  //
+  // }
+  //
 
   void _handleShareChange(dynamic data) {
     if (!mounted) return;
