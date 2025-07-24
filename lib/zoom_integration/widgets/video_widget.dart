@@ -7,14 +7,18 @@ class VideoWidget extends StatelessWidget {
   final ZoomVideoSdkUser user;
   final bool isMainView;
   final double? borderRadius;
+  final bool isLocalUser;
   final VoidCallback? onTap;
+  final VoidCallback? onCameraFlip;
 
   const VideoWidget({
     super.key,
     required this.user,
     this.isMainView = false,
     this.borderRadius,
+    this.isLocalUser = false,
     this.onTap,
+    this.onCameraFlip,
   });
 
   @override
@@ -22,7 +26,7 @@ class VideoWidget extends StatelessWidget {
     return Material(
       color: Colors.black,
       borderRadius:
-          isMainView ? null : BorderRadius.circular(borderRadius ?? 8),
+      isMainView ? null : BorderRadius.circular(borderRadius ?? 8),
       child: ClipRRect(
         borderRadius: isMainView
             ? BorderRadius.zero
@@ -69,6 +73,7 @@ class VideoWidget extends StatelessWidget {
                 }
 
                 return Stack(
+                  alignment: Alignment.center,
                   children: [
                     zoom_view.View(
                       key: Key('${user.userId}_video'),
@@ -84,6 +89,27 @@ class VideoWidget extends StatelessWidget {
                         onTap: onTap,
                       ),
                     ),
+                    if (isVideoOn && isLocalUser && onCameraFlip != null)
+                      Positioned(
+                        top: 8,
+                        child: Center(
+                          child: GestureDetector(
+                            onTap: onCameraFlip,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              padding: const EdgeInsets.all(6),
+                              child: const Icon(
+                                Icons.flip_camera_ios,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 );
               },

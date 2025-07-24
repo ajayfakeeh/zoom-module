@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
 import 'package:zoom_module/zoom_integration/video_full_screen.dart';
 import 'package:zoom_module/zoom_integration/widgets/circle_icon_button.dart';
+import 'package:zoom_module/zoom_integration/widgets/footer_button_widget.dart';
 import 'package:zoom_module/zoom_integration/widgets/user_name_bottom.dart';
 import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
-import 'package:zoom_module/zoom_integration/widgets/control_bar.dart';
 
 class MobileViewMultiple extends StatefulWidget {
   final List<ZoomVideoSdkUser> users;
+  final String localUserId;
   final bool isMuted;
   final bool isVideoOn;
   final bool isScreenSharing;
@@ -18,6 +19,7 @@ class MobileViewMultiple extends StatefulWidget {
   const MobileViewMultiple({
     super.key,
     required this.users,
+    required this.localUserId,
     required this.isMuted,
     required this.isVideoOn,
     required this.isScreenSharing,
@@ -38,97 +40,107 @@ class _MobileViewMultipleState extends State<MobileViewMultiple> {
     super.initState();
   }
 
+  Future switchCamera() async {
+    try {
+      // Pass null to switch to next available camera (front/back)
+      bool success = await widget.zoom.videoHelper.switchCamera(null);
+      debugPrint('Camera switch success: $success');
+    } catch (e) {
+      debugPrint('Error switching camera: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  if (selectedUser != null)
-                    VideoWidget(
-                      user: selectedUser!,
-                      isMainView: true,
-                    ),
-                  UserNameBottom(
-                    userName: selectedUser?.userName ?? "",
-                    position: 4,
+      body: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                if (selectedUser != null)
+                  VideoWidget(
+                    user: selectedUser!,
+                    isMainView: true,
+                    isLocalUser: selectedUser!.userId == widget.localUserId,
+                    onCameraFlip: switchCamera,
                   ),
-                  if (selectedUser != null)
-                    Positioned(
-                      top: 16,
-                      right: 16,
-                      child: CircleIconButton(
-                        icon: Icons.fullscreen,
-                        iconColor: Colors.black,
-                        backgroundColor: Colors.white,
-                        tooltip: "Fullscreen",
-                        onPressed: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      VideoFullScreen(user: selectedUser!)));
+                UserNameBottom(
+                  userName: selectedUser?.userName ?? "",
+                  position: 4,
+                ),
+                if (selectedUser != null)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: CircleIconButton(
+                      icon: Icons.fullscreen,
+                      iconColor: Colors.black,
+                      backgroundColor: Colors.white,
+                      tooltip: "Fullscreen",
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    VideoFullScreen(user: selectedUser!)));
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 120,
+            width: MediaQuery.of(context).size.width,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final itemWidth = 120 * (9 / 16) +
+                    6; // item width + margin * 2 (3 on left + 3 on right)
+                final totalWidth = itemWidth * widget.users.length;
+                final availableWidth = constraints.maxWidth;
+
+                if (totalWidth < availableWidth) {
+                  /// Center content when list is not scrollable
+                  return Align(
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      width: totalWidth,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: widget.users.length,
+                        itemBuilder: (context, index) {
+                          return itemCardUI(index);
                         },
                       ),
                     ),
-                ],
-              ),
+                  );
+                } else {
+                  /// Normal scrollable list
+                  return ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: widget.users.length,
+                    itemBuilder: (context, index) {
+                      return itemCardUI(index);
+                    },
+                  );
+                }
+              },
             ),
-            SizedBox(
-              height: 120,
-              width: MediaQuery.of(context).size.width,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final itemWidth = 120 * (9 / 16) +
-                      6; // item width + margin * 2 (3 on left + 3 on right)
-                  final totalWidth = itemWidth * widget.users.length;
-                  final availableWidth = constraints.maxWidth;
-
-                  if (totalWidth < availableWidth) {
-                    /// Center content when list is not scrollable
-                    return Align(
-                      alignment: Alignment.center,
-                      child: SizedBox(
-                        width: totalWidth,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: widget.users.length,
-                          itemBuilder: (context, index) {
-                            return itemCardUI(index);
-                          },
-                        ),
-                      ),
-                    );
-                  } else {
-                    /// Normal scrollable list
-                    return ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: widget.users.length,
-                      itemBuilder: (context, index) {
-                        return itemCardUI(index);
-                      },
-                    );
-                  }
-                },
-              ),
-            ),
-            ControlBar(
-              isMuted: widget.isMuted,
-              isVideoOn: widget.isVideoOn,
-              isScreenSharing: widget.isScreenSharing,
-              onLeaveSession: widget.onLeaveSession,
-              zoom: widget.zoom,
-              onStateUpdate: widget.onStateUpdate,
-            ),
-          ],
-        ),
+          ),
+          FooterButtonWidget(
+            isMuted: widget.isMuted,
+            isVideoOn: widget.isVideoOn,
+            isScreenSharing: widget.isScreenSharing,
+            onLeaveSession: widget.onLeaveSession,
+            zoom: widget.zoom,
+            onStateUpdate: widget.onStateUpdate,
+            users: widget.users,
+          ),
+        ],
       ),
     );
   }
@@ -157,6 +169,8 @@ class _MobileViewMultipleState extends State<MobileViewMultiple> {
                   selectedUser = widget.users[index];
                 });
               },
+              isLocalUser: widget.users[index].userId == widget.localUserId,
+              onCameraFlip: switchCamera,
             ),
           ),
           UserNameBottom(userName: widget.users[index].userName, position: 4),

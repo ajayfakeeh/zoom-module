@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'chat_manager.dart';
+import 'package:zoom_module/zoom_integration/utils/chat_manager.dart';
 
 class ChatSheet extends StatefulWidget {
   final ZoomVideoSdk zoom;

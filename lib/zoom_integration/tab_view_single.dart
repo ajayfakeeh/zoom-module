@@ -39,11 +39,13 @@ class TabViewSingle extends StatefulWidget {
 class _TabViewSingleState extends State<TabViewSingle> {
   ZoomVideoSdkUser? activeSpeaker;
   bool _isManualSpeakerChange = false;
+  String? localUserId;
 
   @override
   void initState() {
     super.initState();
     findActiveSpeaker();
+    identifyLocalUser();
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setSystemUIOverlayStyle(
@@ -95,6 +97,15 @@ class _TabViewSingleState extends State<TabViewSingle> {
         'Active speaker updated: ${activeSpeaker?.userId}, Total users: ${widget.users.length}');
   }
 
+  Future<void> identifyLocalUser() async {
+    final self = await widget.zoom.session.getMySelf();
+    if (self != null) {
+      setState(() {
+        localUserId = self.userId;
+      });
+    }
+  }
+
   void _handleManualSwitch(ZoomVideoSdkUser user) {
     setState(() {
       _isManualSpeakerChange = true;
@@ -110,6 +121,16 @@ class _TabViewSingleState extends State<TabViewSingle> {
         }
       });
     });
+  }
+
+  Future switchCamera() async {
+    try {
+      // Pass null to switch to next available camera (front/back)
+      bool success = await widget.zoom.videoHelper.switchCamera(null);
+      debugPrint('Camera switch success: $success');
+    } catch (e) {
+      debugPrint('Error switching camera: $e');
+    }
   }
 
   @override
@@ -143,7 +164,12 @@ class _TabViewSingleState extends State<TabViewSingle> {
           children: [
             if (activeSpeaker != null)
               Positioned.fill(
-                child: VideoWidget(user: activeSpeaker!, isMainView: true),
+                child: VideoWidget(
+                  user: activeSpeaker!,
+                  isMainView: true,
+                  onCameraFlip: switchCamera,
+                  isLocalUser: activeSpeaker!.userId == localUserId,
+                ),
               ),
             UserNameBottom(
               userName: activeSpeaker?.userName ?? "",
@@ -164,6 +190,8 @@ class _TabViewSingleState extends State<TabViewSingle> {
                 child: FloatingUserWidget(
                   otherUsers: otherUsers,
                   onTap: _handleManualSwitch,
+                  switchCamera: switchCamera,
+                  localUserId: localUserId??"",
                 ),
               ),
           ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:zoom_module/zoom_integration/chat_manager.dart';
 import 'package:zoom_module/zoom_integration/chat_sheet.dart';
+import 'package:zoom_module/zoom_integration/utils/chat_manager.dart';
 import 'package:zoom_module/zoom_integration/widgets/circle_icon_button.dart';
 
 class ControlBar extends StatefulWidget {

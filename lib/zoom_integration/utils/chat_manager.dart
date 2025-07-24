@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_event_listener.dart';
 import 'package:html_unescape/html_unescape.dart';
-import 'chat_sheet.dart';
+import 'package:zoom_module/zoom_integration/chat_sheet.dart';
 
 class ChatManager {
   static final ChatManager _instance = ChatManager._internal();
@@ -44,10 +44,10 @@ class ChatManager {
   void _handleNewMessage(dynamic data) {
     try {
       final messageData = data is String ? jsonDecode(data) : data;
-      final messageMap = messageData['message'] is String 
-          ? jsonDecode(messageData['message']) 
+      final messageMap = messageData['message'] is String
+          ? jsonDecode(messageData['message'])
           : messageData['message'];
-      
+
       String senderId = '';
       if (messageMap['senderUser'] != null) {
         try {
@@ -60,10 +60,10 @@ class ChatManager {
           debugPrint("Error parsing sender: $e");
         }
       }
-      
+
       final content = messageMap['content'] ?? 'No message';
       final isMe = senderId == _myUserId;
-      
+
       try {
         final jsonContent = jsonDecode(content);
         _messages.add(ChatMessage(
@@ -75,7 +75,7 @@ class ChatManager {
       } catch (e) {
         _messages.add(ChatMessage(content: content, isMe: isMe));
       }
-      
+
       if (!isMe) {
         _unreadCount++;
       }

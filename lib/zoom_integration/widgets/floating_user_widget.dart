@@ -5,10 +5,14 @@ import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 class FloatingUserWidget extends StatelessWidget {
   final List<ZoomVideoSdkUser> otherUsers;
   final Function(ZoomVideoSdkUser) onTap;
+  final VoidCallback switchCamera;
+  final String localUserId;
   const FloatingUserWidget({
     super.key,
     required this.otherUsers,
     required this.onTap,
+    required this.switchCamera,
+    required this.localUserId,
   });
 
   @override
@@ -36,6 +40,8 @@ class FloatingUserWidget extends StatelessWidget {
                   user: user,
                   isMainView: false,
                   onTap: () => onTap(user),
+                  onCameraFlip: switchCamera,
+                  isLocalUser: user.userId == localUserId,
                 ),
               ),
             );

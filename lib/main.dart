@@ -1,36 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:zoom_module/zoom_integration/zoom_launcher.dart';
+import 'package:zoom_module/home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  /// 🧱 UI Mode: Enables immersive full screen mode.
-  /// Hides both the status bar and navigation bar,
-  /// but they temporarily reappear when the user swipes from the edges.
+  // 🧱 Enable immersive sticky UI mode: full screen with transient system bars.
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-  /// 🎨 Overlay Style: Customizes the appearance of system UI overlays
-  /// like the status bar and navigation bar.
+  // 🎨 Customize system UI overlays for dark mode (dark background, light icons).
   SystemChrome.setSystemUIOverlayStyle(
-    SystemUiOverlayStyle(
-      /// 🔍 Status Bar Background: Transparent so your content can extend behind it.
-      statusBarColor: Colors.transparent,
-
-      /// 📱 Navigation Bar Background: Black by default (can be transparent for full UI control).
-      systemNavigationBarColor: Colors.black,
-
-      /// 🌙 Status Bar Icons: Light icons for visibility on dark backgrounds.
-      statusBarIconBrightness: Brightness.light,
-
-      /// 🌙 Navigation Bar Icons: Also light-colored for consistency.
-      systemNavigationBarIconBrightness: Brightness.light,
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent, // Transparent status bar.
+      systemNavigationBarColor: Colors.black, // Black navigation bar.
+      statusBarIconBrightness: Brightness.light, // Light icons on status bar.
+      systemNavigationBarIconBrightness:
+          Brightness.light, // Light nav bar icons.
+      systemNavigationBarDividerColor: Colors.transparent,
     ),
   );
 
   runApp(const MyApp());
 }
 
+/// The root widget of the app.
+/// Handles receiving method calls from native code to start Zoom sessions.
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -40,74 +34,65 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Map<String, dynamic>? _zoomArgs;
+
+  // MethodChannel for communicating with native platform code.
   static const MethodChannel _channel = MethodChannel('flutter_zoom_videosdk');
 
   @override
   void initState() {
     super.initState();
 
+    // Register the native method call handler.
     _channel.setMethodCallHandler(_handleNativeMethodCall);
+    debugPrint("[MyApp] Initialized MethodChannel handler.");
   }
 
+  /// Handles calls from native platform via MethodChannel.
+  ///
+  /// Expects 'joinSession' method with arguments containing Zoom session details.
   Future<void> _handleNativeMethodCall(MethodCall call) async {
-    if (call.method == 'joinSession') {
-      final args = Map<String, dynamic>.from(call.arguments);
-      debugPrint("✅ Received from native: $args");
+    debugPrint("[MyApp] Received native method call: ${call.method}");
 
-      // Trigger widget rebuild with new args
-      setState(() {
-        _zoomArgs = args;
-      });
+    if (call.method == 'joinSession') {
+      try {
+        final args = Map<String, dynamic>.from(call.arguments);
+        debugPrint("[MyApp] joinSession args: $args");
+
+        // Update state with new Zoom session arguments to rebuild UI.
+        setState(() {
+          _zoomArgs = args;
+        });
+      } catch (e, stacktrace) {
+        debugPrint("[MyApp] Error processing joinSession args: $e");
+        debugPrint(stacktrace.toString());
+      }
+    } else {
+      debugPrint("[MyApp] Unhandled native method: ${call.method}");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Zoom SDK Test',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: HomeScreen(zoomArgs: _zoomArgs),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  final Map<String, dynamic>? zoomArgs;
-
-  const HomeScreen({super.key, required this.zoomArgs});
-
-  @override
-  Widget build(BuildContext context) {
-    if (zoomArgs == null) {
-      return const Scaffold(
-        body: Center(child: Text("Waiting for Zoom parameters...")),
-      );
-    }
-
-    return Scaffold(
-      body: FutureBuilder<Widget>(
-        future: ZoomLauncher.initializeAndGetVideoChatWidget(
-          appKey: zoomArgs!['appKey'],
-          appSecret: zoomArgs!['appSecret'],
-          sessionDetails: {
-            "sessionName": zoomArgs!['sessionName'],
-            "sessionPassword": zoomArgs!['sessionPassword'],
-            "displayName": zoomArgs!['displayName'],
-            "roleType": zoomArgs!['roleType'],
-            "sessionTimeout": zoomArgs!['sessionTimeout'],
-          },
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: Colors.black,
+        colorScheme: const ColorScheme.dark().copyWith(
+          primary: Colors.blueAccent,
+          secondary: Colors.lightBlueAccent,
         ),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          } else {
-            return snapshot.data!;
-          }
-        },
+        snackBarTheme: const SnackBarThemeData(
+          backgroundColor: Colors.grey,
+          contentTextStyle: TextStyle(color: Colors.white),
+        ),
       ),
+      builder: (context, child) {
+        return Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: child,
+        );
+      },
+      home: HomeScreen(zoomArgs: _zoomArgs),
     );
   }
 }

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
 import 'package:zoom_module/zoom_integration/widgets/floating_user_widget.dart';
 import 'package:zoom_module/zoom_integration/mobile_view_multiple.dart';
+import 'package:zoom_module/zoom_integration/widgets/footer_button_widget.dart';
 import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:zoom_module/zoom_integration/widgets/control_bar.dart';
+import 'package:zoom_module/zoom_integration/widgets/zoom_app_bar.dart';
 
 class MobileViewSingle extends StatefulWidget {
   final List<ZoomVideoSdkUser> users;
@@ -37,11 +39,22 @@ class MobileViewSingle extends StatefulWidget {
 class _MobileViewSingleState extends State<MobileViewSingle> {
   ZoomVideoSdkUser? activeSpeaker;
   bool _isManualSpeakerChange = false;
+  String? localUserId;
 
   @override
   void initState() {
     super.initState();
     findActiveSpeaker();
+    identifyLocalUser();
+  }
+
+  Future<void> identifyLocalUser() async {
+    final self = await widget.zoom.session.getMySelf();
+    if (self != null) {
+      setState(() {
+        localUserId = self.userId;
+      });
+    }
   }
 
   @override
@@ -98,6 +111,16 @@ class _MobileViewSingleState extends State<MobileViewSingle> {
     });
   }
 
+  Future switchCamera() async {
+    try {
+      // Pass null to switch to next available camera (front/back)
+      bool success = await widget.zoom.videoHelper.switchCamera(null);
+      debugPrint('Camera switch success: $success');
+    } catch (e) {
+      debugPrint('Error switching camera: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.users.isEmpty) {
@@ -107,6 +130,7 @@ class _MobileViewSingleState extends State<MobileViewSingle> {
     if (widget.users.length > 2) {
       return MobileViewMultiple(
         users: widget.users,
+        localUserId: localUserId ?? "",
         isMuted: widget.isMuted,
         isVideoOn: widget.isVideoOn,
         onLeaveSession: widget.onLeaveSession,
@@ -122,55 +146,43 @@ class _MobileViewSingleState extends State<MobileViewSingle> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          onPressed: widget.onLeaveSession,
-          icon: const Icon(Icons.close, color: Colors.white),
-        ),
-        centerTitle: true,
-        title: Text(
-          activeSpeaker?.userName ?? "",
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                if (activeSpeaker != null)
-                  Expanded(
-                    child: VideoWidget(
-                      user: activeSpeaker!,
-                      isMainView: true,
-                    ),
+      // appBar: ZoomAppBar(leaveSession: widget.onLeaveSession),
+      body: Column(
+        children: [
+          if (activeSpeaker != null)
+            Expanded(
+              child: Stack(
+                children: [
+                  VideoWidget(
+                    user: activeSpeaker!,
+                    isMainView: true,
+                    onCameraFlip: switchCamera,
+                    isLocalUser: activeSpeaker!.userId == localUserId,
                   ),
-                ControlBar(
-                  isMuted: widget.isMuted,
-                  isVideoOn: widget.isVideoOn,
-                  isScreenSharing: widget.isScreenSharing,
-                  onLeaveSession: widget.onLeaveSession,
-                  zoom: widget.zoom,
-                  onStateUpdate: widget.onStateUpdate,
-                ),
-              ],
-            ),
-            if (otherUsers.isNotEmpty)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: FloatingUserWidget(
-                  otherUsers: otherUsers,
-                  onTap: _handleManualSwitch,
-                ),
+                  if (otherUsers.isNotEmpty)
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: FloatingUserWidget(
+                        otherUsers: otherUsers,
+                        onTap: _handleManualSwitch,
+                        switchCamera: switchCamera,
+                        localUserId: localUserId??"",
+                      ),
+                    ),
+                ],
               ),
-          ],
-        ),
+            ),
+          FooterButtonWidget(
+            isMuted: widget.isMuted,
+            isVideoOn: widget.isVideoOn,
+            isScreenSharing: widget.isScreenSharing,
+            onLeaveSession: widget.onLeaveSession,
+            zoom: widget.zoom,
+            onStateUpdate: widget.onStateUpdate,
+            users: widget.users,
+          ),
+        ],
       ),
     );
   }

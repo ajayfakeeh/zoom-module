@@ -8,9 +8,9 @@ import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_event_listener.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:zoom_module/zoom_integration/chat_manager.dart';
 import 'package:zoom_module/zoom_integration/mobile_view_single.dart';
 import 'package:zoom_module/zoom_integration/tab_view_single.dart';
+import 'package:zoom_module/zoom_integration/utils/chat_manager.dart';
 import 'package:zoom_module/zoom_integration/utils/jwt.dart';
 import 'package:zoom_module/zoom_integration/widgets/loading_widget.dart';
 
@@ -50,7 +50,7 @@ class _VideochatState extends State<Videochat> {
     super.initState();
     if (Platform.isAndroid) _checkPermissions();
 
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       systemNavigationBarColor: Colors.black,
@@ -124,7 +124,6 @@ class _VideochatState extends State<Videochat> {
 
     final remoteUsers = await zoom.session.getRemoteUsers() ?? [];
     final allUsers = [mySelf, ...remoteUsers];
-
 
     setState(() {
       users = List<ZoomVideoSdkUser>.from(allUsers);
