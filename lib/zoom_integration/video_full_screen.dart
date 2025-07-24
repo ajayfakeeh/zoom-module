@@ -6,7 +6,14 @@ import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 
 class VideoFullScreen extends StatefulWidget {
   final ZoomVideoSdkUser user;
-  const VideoFullScreen({super.key, required this.user});
+  final String localUserId;
+  final VoidCallback switchCamera;
+  const VideoFullScreen({
+    super.key,
+    required this.user,
+    required this.localUserId,
+    required this.switchCamera,
+  });
 
   @override
   State<VideoFullScreen> createState() => _VideoFullScreenState();
@@ -37,6 +44,8 @@ class _VideoFullScreenState extends State<VideoFullScreen> {
             VideoWidget(
               user: widget.user,
               isMainView: true,
+              onCameraFlip: widget.switchCamera,
+              isLocalUser: widget.user.userId == widget.localUserId,
             ),
             Positioned(
               top: 16,

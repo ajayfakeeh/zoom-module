@@ -139,13 +139,21 @@ class _FooterButtonWidgetState extends State<FooterButtonWidget> {
       required VoidCallback onTap,
       bool showNotification = false,
       Color buttonColor = Colors.white}) {
-    return GestureDetector(
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    double aspectRatio = screenWidth / screenHeight;
+
+    return InkWell(
       onTap: onTap,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          Icon(icon, color: buttonColor),
+          Icon(
+            icon,
+            color: buttonColor,
+            size: aspectRatio > .5 ? 32 : 24,
+          ),
           if (showNotification)
             Positioned(
               right: 0,

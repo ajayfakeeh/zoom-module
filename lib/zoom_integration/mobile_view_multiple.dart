@@ -83,8 +83,11 @@ class _MobileViewMultipleState extends State<MobileViewMultiple> {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    VideoFullScreen(user: selectedUser!)));
+                                builder: (context) => VideoFullScreen(
+                                      user: selectedUser!,
+                                      localUserId: widget.localUserId,
+                                      switchCamera: switchCamera,
+                                    )));
                       },
                     ),
                   ),

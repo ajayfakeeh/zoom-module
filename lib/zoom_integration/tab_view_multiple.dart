@@ -3,11 +3,13 @@ import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
 import 'package:zoom_module/zoom_integration/widgets/circle_icon_button.dart';
 import 'package:zoom_module/zoom_integration/widgets/control_bar.dart';
+import 'package:zoom_module/zoom_integration/widgets/footer_button_widget.dart';
 import 'package:zoom_module/zoom_integration/widgets/user_name_bottom.dart';
 import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 
 class TabViewMultiple extends StatefulWidget {
   final List<ZoomVideoSdkUser> users;
+  final String localUserId;
   final String? activeSpeakerId;
   final bool isMuted;
   final bool isVideoOn;
@@ -18,6 +20,7 @@ class TabViewMultiple extends StatefulWidget {
   const TabViewMultiple({
     super.key,
     required this.users,
+    required this.localUserId,
     this.activeSpeakerId,
     required this.isMuted,
     required this.isVideoOn,
@@ -40,73 +43,91 @@ class _TabViewMultipleState extends State<TabViewMultiple> {
     super.initState();
   }
 
+  Future switchCamera() async {
+    try {
+      // Pass null to switch to next available camera (front/back)
+      bool success = await widget.zoom.videoHelper.switchCamera(null);
+      debugPrint('Camera switch success: $success');
+    } catch (e) {
+      debugPrint('Error switching camera: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: Stack(
-          children: [
-            if (selectedUser != null)
-              Positioned.fill(
-                child: VideoWidget(user: selectedUser!, isMainView: true),
-              ),
-            UserNameBottom(
-              userName: selectedUser?.userName ?? "",
-              position: 16,
-            ),
-            ControlBar(
-              isMuted: widget.isMuted,
-              isVideoOn: widget.isVideoOn,
-              isScreenSharing: widget.isScreenSharing,
-              onLeaveSession: widget.onLeaveSession,
-              zoom: widget.zoom,
-              onStateUpdate: widget.onStateUpdate,
-            ),
-            Positioned(
-              right: 40,
-              top: 0,
-              child: CircleIconButton(
-                icon: isListVisible
-                    ? Icons.chevron_right
-                    : Icons.chevron_left,
-                iconColor: Colors.blue,
-                backgroundColor: Colors.white,
-                tooltip: "Hide/Show",
-                onPressed: () {
-                  setState(() {
-                    isListVisible = !isListVisible;
-                  });
-                },
-              ),
-            ),
-            Positioned(
-              right: 0,
-              top: 100,
-              bottom: 0,
-              child: AnimatedContainer(
-                duration: Duration(milliseconds: 300),
-                width: isListVisible ? 200.0 : 0,
-                color: Colors.transparent,
-                child: isListVisible
-                    ? LayoutBuilder(
-                        builder: (context, constraints) {
-                          return ListView.builder(
-                            physics: BouncingScrollPhysics(),
-                            itemCount: widget.users.length,
-                            itemBuilder: (context, index) {
-                              return itemCardUI(index);
+      body: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                if (selectedUser != null)
+                  Positioned.fill(
+                    child: VideoWidget(
+                      user: selectedUser!,
+                      isMainView: true,
+                      onCameraFlip: switchCamera,
+                      isLocalUser: selectedUser!.userId == widget.localUserId,
+                    ),
+                  ),
+                UserNameBottom(
+                  userName: selectedUser?.userName ?? "",
+                  position: 32,
+                ),
+                Positioned(
+                  right: 40,
+                  top: 0,
+                  child: CircleIconButton(
+                    icon: isListVisible
+                        ? Icons.chevron_right
+                        : Icons.chevron_left,
+                    iconColor: Colors.blue,
+                    backgroundColor: Colors.white,
+                    tooltip: "Hide/Show",
+                    onPressed: () {
+                      setState(() {
+                        isListVisible = !isListVisible;
+                      });
+                    },
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  top: 100,
+                  bottom: 0,
+                  child: AnimatedContainer(
+                    duration: Duration(milliseconds: 300),
+                    width: isListVisible ? 200.0 : 0,
+                    color: Colors.transparent,
+                    child: isListVisible
+                        ? LayoutBuilder(
+                            builder: (context, constraints) {
+                              return ListView.builder(
+                                physics: BouncingScrollPhysics(),
+                                itemCount: widget.users.length,
+                                itemBuilder: (context, index) {
+                                  return itemCardUI(index);
+                                },
+                              );
                             },
-                          );
-                        },
-                      )
-                    : SizedBox.shrink(),
-              ),
+                          )
+                        : SizedBox.shrink(),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          FooterButtonWidget(
+            isMuted: widget.isMuted,
+            isVideoOn: widget.isVideoOn,
+            isScreenSharing: widget.isScreenSharing,
+            onLeaveSession: widget.onLeaveSession,
+            zoom: widget.zoom,
+            onStateUpdate: widget.onStateUpdate,
+            users: widget.users,
+          ),
+        ],
       ),
     );
   }
@@ -135,6 +156,8 @@ class _TabViewMultipleState extends State<TabViewMultiple> {
                   selectedUser = widget.users[index];
                 });
               },
+              onCameraFlip: switchCamera,
+              isLocalUser: widget.users[index] == widget.localUserId,
             ),
           ),
           UserNameBottom(userName: widget.users[index].userName, position: 4),

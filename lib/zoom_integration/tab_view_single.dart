@@ -5,6 +5,7 @@ import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
 import 'package:zoom_module/zoom_integration/tab_view_multiple.dart';
 import 'package:zoom_module/zoom_integration/widgets/control_bar.dart';
 import 'package:zoom_module/zoom_integration/widgets/floating_user_widget.dart';
+import 'package:zoom_module/zoom_integration/widgets/footer_button_widget.dart';
 import 'package:zoom_module/zoom_integration/widgets/user_name_bottom.dart';
 import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 
@@ -148,6 +149,7 @@ class _TabViewSingleState extends State<TabViewSingle> {
         isScreenSharing: widget.isScreenSharing,
         onStateUpdate: widget.onStateUpdate,
         zoom: widget.zoom,
+        localUserId: localUserId??"",
       );
     }
 
@@ -155,47 +157,52 @@ class _TabViewSingleState extends State<TabViewSingle> {
         .where((user) => user.userId != activeSpeaker?.userId)
         .toList();
 
+
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: Stack(
-          children: [
-            if (activeSpeaker != null)
-              Positioned.fill(
-                child: VideoWidget(
-                  user: activeSpeaker!,
-                  isMainView: true,
-                  onCameraFlip: switchCamera,
-                  isLocalUser: activeSpeaker!.userId == localUserId,
+      body: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                if (activeSpeaker != null)
+                  Positioned.fill(
+                    child: VideoWidget(
+                      user: activeSpeaker!,
+                      isMainView: true,
+                      onCameraFlip: switchCamera,
+                      isLocalUser: activeSpeaker!.userId == localUserId,
+                    ),
+                  ),
+                UserNameBottom(
+                  userName: activeSpeaker?.userName ?? "",
+                  position: 16,
                 ),
-              ),
-            UserNameBottom(
-              userName: activeSpeaker?.userName ?? "",
-              position: 16,
+
+                if (otherUsers.isNotEmpty)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: FloatingUserWidget(
+                      otherUsers: otherUsers,
+                      onTap: _handleManualSwitch,
+                      switchCamera: switchCamera,
+                      localUserId: localUserId??"",
+                    ),
+                  ),
+              ],
             ),
-            ControlBar(
-              isMuted: widget.isMuted,
-              isVideoOn: widget.isVideoOn,
-              isScreenSharing: widget.isScreenSharing,
-              onLeaveSession: widget.onLeaveSession,
-              zoom: widget.zoom,
-              onStateUpdate: widget.onStateUpdate,
-            ),
-            if (otherUsers.isNotEmpty)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: FloatingUserWidget(
-                  otherUsers: otherUsers,
-                  onTap: _handleManualSwitch,
-                  switchCamera: switchCamera,
-                  localUserId: localUserId??"",
-                ),
-              ),
-          ],
-        ),
+          ),
+          FooterButtonWidget(
+            isMuted: widget.isMuted,
+            isVideoOn: widget.isVideoOn,
+            isScreenSharing: widget.isScreenSharing,
+            onLeaveSession: widget.onLeaveSession,
+            zoom: widget.zoom,
+            onStateUpdate: widget.onStateUpdate,
+            users: widget.users,
+          ),
+        ],
       ),
     );
   }
