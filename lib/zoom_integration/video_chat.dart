@@ -12,6 +12,7 @@ import 'package:zoom_module/zoom_integration/mobile_view_single.dart';
 import 'package:zoom_module/zoom_integration/tab_view_single.dart';
 import 'package:zoom_module/zoom_integration/utils/chat_manager.dart';
 import 'package:zoom_module/zoom_integration/utils/jwt.dart';
+import 'package:zoom_module/zoom_integration/widgets/leave_session_popup.dart';
 import 'package:zoom_module/zoom_integration/widgets/loading_widget.dart';
 
 class Videochat extends StatefulWidget {
@@ -245,6 +246,15 @@ class _VideochatState extends State<Videochat> {
   }
 
   Future<void> _leaveSession() async {
+    final shouldLeave = await showDialog<bool>(
+      context: context,
+      builder: (context) => LeaveSessionPopup(),
+    );
+
+    // If the user cancels or dismisses, do nothing
+    if (shouldLeave != true) return;
+
+    // Proceed to leave session
     WakelockPlus.disable();
 
     for (var sub in subscriptions) {
@@ -271,6 +281,7 @@ class _VideochatState extends State<Videochat> {
         isScreenSharing = false;
       });
     }
+    Navigator.pop(context);
     ChatManager().dispose();
   }
 
@@ -280,61 +291,71 @@ class _VideochatState extends State<Videochat> {
     final screenWidth = MediaQuery.of(context).size.width;
     double aspectRatio = screenWidth / screenHeight;
     debugPrint("aspect ratio $aspectRatio");
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: isInSession == false
-            ? isLoading
-                ? LoadingWidget(text: 'Connecting to session...')
-                : ElevatedButton(
-                    onPressed: startSession,
-                    child: Text('Start Session'),
-                  )
-            : isInSession && users.isEmpty
-                ? LoadingWidget(text: 'Loading video...')
-                : aspectRatio > .5
-                    ? TabViewSingle(
-                        users: users,
-                        activeSpeakerId: activeSpeakerId,
-                        onSpeakerChange: (userId) {
-                          setState(() {
-                            activeSpeakerId = userId;
-                          });
-                        },
-                        isMuted: isMuted,
-                        isVideoOn: isVideoOn,
-                        isScreenSharing: isScreenSharing,
-                        onLeaveSession: _leaveSession,
-                        zoom: zoom,
-                        onStateUpdate: (muted, video, screen) {
-                          setState(() {
-                            isMuted = muted;
-                            isVideoOn = video;
-                            isScreenSharing = screen;
-                          });
-                        },
-                      )
-                    : MobileViewSingle(
-                        users: users,
-                        activeSpeakerId: activeSpeakerId,
-                        onSpeakerChange: (userId) {
-                          setState(() {
-                            activeSpeakerId = userId;
-                          });
-                        },
-                        isMuted: isMuted,
-                        isVideoOn: isVideoOn,
-                        isScreenSharing: isScreenSharing,
-                        onLeaveSession: _leaveSession,
-                        zoom: zoom,
-                        onStateUpdate: (muted, video, screen) {
-                          setState(() {
-                            isMuted = muted;
-                            isVideoOn = video;
-                            isScreenSharing = screen;
-                          });
-                        },
-                      ),
+    return WillPopScope(
+      onWillPop: () async {
+        // If in session, show the leave confirmation dialog
+        if (isInSession) {
+          await _leaveSession();
+          return false; // Prevent default pop, since _leaveSession handles logic
+        }
+        return true; // Allow back if not in session
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: isInSession == false
+              ? isLoading
+                  ? LoadingWidget(text: 'Connecting to session...')
+                  : ElevatedButton(
+                      onPressed: startSession,
+                      child: Text('Start Session'),
+                    )
+              : isInSession && users.isEmpty
+                  ? LoadingWidget(text: 'Loading video...')
+                  : aspectRatio > .5
+                      ? TabViewSingle(
+                          users: users,
+                          activeSpeakerId: activeSpeakerId,
+                          onSpeakerChange: (userId) {
+                            setState(() {
+                              activeSpeakerId = userId;
+                            });
+                          },
+                          isMuted: isMuted,
+                          isVideoOn: isVideoOn,
+                          isScreenSharing: isScreenSharing,
+                          onLeaveSession: _leaveSession,
+                          zoom: zoom,
+                          onStateUpdate: (muted, video, screen) {
+                            setState(() {
+                              isMuted = muted;
+                              isVideoOn = video;
+                              isScreenSharing = screen;
+                            });
+                          },
+                        )
+                      : MobileViewSingle(
+                          users: users,
+                          activeSpeakerId: activeSpeakerId,
+                          onSpeakerChange: (userId) {
+                            setState(() {
+                              activeSpeakerId = userId;
+                            });
+                          },
+                          isMuted: isMuted,
+                          isVideoOn: isVideoOn,
+                          isScreenSharing: isScreenSharing,
+                          onLeaveSession: _leaveSession,
+                          zoom: zoom,
+                          onStateUpdate: (muted, video, screen) {
+                            setState(() {
+                              isMuted = muted;
+                              isVideoOn = video;
+                              isScreenSharing = screen;
+                            });
+                          },
+                        ),
+        ),
       ),
     );
   }
