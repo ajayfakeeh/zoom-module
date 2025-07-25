@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/flutter_zoom_view.dart' as zoom_view;
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
+import 'user_avatar.dart';
 
 class VideoWidget extends StatelessWidget {
   final ZoomVideoSdkUser user;
@@ -10,6 +11,7 @@ class VideoWidget extends StatelessWidget {
   final bool isLocalUser;
   final VoidCallback? onTap;
   final VoidCallback? onCameraFlip;
+  final bool? isTabView;
 
   const VideoWidget({
     super.key,
@@ -19,14 +21,17 @@ class VideoWidget extends StatelessWidget {
     this.isLocalUser = false,
     this.onTap,
     this.onCameraFlip,
+    this.isTabView,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black,
-      borderRadius:
-      isMainView ? null : BorderRadius.circular(borderRadius ?? 8),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: isMainView ? null : BorderRadius.circular(borderRadius ?? 8),
+        border: !isMainView ? Border.all(color: Colors.white, width: 2) : null,
+      ),
       child: ClipRRect(
         borderRadius: isMainView
             ? BorderRadius.zero
@@ -44,30 +49,40 @@ class VideoWidget extends StatelessWidget {
                   return GestureDetector(
                     behavior: HitTestBehavior.translucent,
                     onTap: onTap,
-                    child: Container(
-                      color: Colors.grey[800],
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.person,
-                              size: isMainView ? 80 : 40,
-                              color: Colors.white70,
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              user.userName,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: isMainView ? 18 : 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                    child: Stack(
+                      children: [
+                        UserAvatar(
+                          userName: user.userName,
+                          isMainView:isMainView,
+                          isTabView:isTabView,
                         ),
-                      ),
+                        // Mute icon for avatar view - only for non-main views
+                        if (!isMainView)
+                          Positioned(
+                            bottom: 8,
+                            left: 8,
+                            child: FutureBuilder<bool>(
+                              future: user.audioStatus?.isMuted(),
+                              builder: (context, snapshot) {
+                                final isMuted = snapshot.data ?? true;
+                                if (!isMuted) return const SizedBox.shrink();
+                                
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.8),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(4),
+                                  child: const Icon(
+                                    Icons.mic_off,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                      ],
                     ),
                   );
                 }
@@ -89,6 +104,32 @@ class VideoWidget extends StatelessWidget {
                         onTap: onTap,
                       ),
                     ),
+                    // Mute icon overlay - only for non-main views
+                    if (!isMainView)
+                      Positioned(
+                        bottom: 8,
+                        left: 8,
+                        child: FutureBuilder<bool>(
+                          future: user.audioStatus?.isMuted(),
+                          builder: (context, snapshot) {
+                            final isMuted = snapshot.data ?? true;
+                            if (!isMuted) return const SizedBox.shrink();
+                            
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.8),
+                                shape: BoxShape.circle,
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(
+                                Icons.mic_off,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     if (isVideoOn && isLocalUser && onCameraFlip != null)
                       Positioned(
                         top: 8,

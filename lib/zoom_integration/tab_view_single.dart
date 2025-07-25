@@ -19,6 +19,7 @@ class TabViewSingle extends StatefulWidget {
   final VoidCallback onLeaveSession;
   final Function(bool, bool, bool) onStateUpdate;
   final ZoomVideoSdk zoom;
+  final bool isTabView;
 
   const TabViewSingle({
     super.key,
@@ -31,6 +32,7 @@ class TabViewSingle extends StatefulWidget {
     required this.onLeaveSession,
     required this.onStateUpdate,
     required this.zoom,
+    required this.isTabView,
   });
 
   @override
@@ -172,6 +174,7 @@ class _TabViewSingleState extends State<TabViewSingle> {
                       isMainView: true,
                       onCameraFlip: switchCamera,
                       isLocalUser: activeSpeaker!.userId == localUserId,
+                      isTabView: true,
                     ),
                   ),
                 UserNameBottom(

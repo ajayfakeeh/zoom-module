@@ -12,7 +12,6 @@ import 'package:zoom_module/zoom_integration/mobile_view_single.dart';
 import 'package:zoom_module/zoom_integration/tab_view_single.dart';
 import 'package:zoom_module/zoom_integration/utils/chat_manager.dart';
 import 'package:zoom_module/zoom_integration/utils/jwt.dart';
-import 'package:zoom_module/zoom_integration/widgets/leave_session_popup.dart';
 import 'package:zoom_module/zoom_integration/widgets/loading_widget.dart';
 
 class Videochat extends StatefulWidget {
@@ -246,15 +245,6 @@ class _VideochatState extends State<Videochat> {
   }
 
   Future<void> _leaveSession() async {
-    final shouldLeave = await showDialog<bool>(
-      context: context,
-      builder: (context) => LeaveSessionPopup(),
-    );
-
-    // If the user cancels or dismisses, do nothing
-    if (shouldLeave != true) return;
-
-    // Proceed to leave session
     WakelockPlus.disable();
 
     for (var sub in subscriptions) {
@@ -281,7 +271,6 @@ class _VideochatState extends State<Videochat> {
         isScreenSharing = false;
       });
     }
-    Navigator.pop(context);
     ChatManager().dispose();
   }
 
@@ -293,12 +282,11 @@ class _VideochatState extends State<Videochat> {
     debugPrint("aspect ratio $aspectRatio");
     return WillPopScope(
       onWillPop: () async {
-        // If in session, show the leave confirmation dialog
         if (isInSession) {
           await _leaveSession();
-          return false; // Prevent default pop, since _leaveSession handles logic
+          return false;
         }
-        return true; // Allow back if not in session
+        return true;
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -326,6 +314,7 @@ class _VideochatState extends State<Videochat> {
                           isScreenSharing: isScreenSharing,
                           onLeaveSession: _leaveSession,
                           zoom: zoom,
+                          isTabView: true,
                           onStateUpdate: (muted, video, screen) {
                             setState(() {
                               isMuted = muted;
