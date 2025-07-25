@@ -306,6 +306,7 @@ class _VideochatState extends State<Videochat> {
                         isScreenSharing: isScreenSharing,
                         onLeaveSession: _leaveSession,
                         zoom: zoom,
+                        isTabView:true,
                         onStateUpdate: (muted, video, screen) {
                           setState(() {
                             isMuted = muted;
