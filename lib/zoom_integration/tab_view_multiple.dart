@@ -17,6 +17,7 @@ class TabViewMultiple extends StatefulWidget {
   final VoidCallback onLeaveSession;
   final Function(bool, bool, bool) onStateUpdate;
   final ZoomVideoSdk zoom; // Add this
+
   const TabViewMultiple({
     super.key,
     required this.users,

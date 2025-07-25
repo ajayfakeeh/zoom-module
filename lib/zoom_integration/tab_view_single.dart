@@ -151,14 +151,13 @@ class _TabViewSingleState extends State<TabViewSingle> {
         isScreenSharing: widget.isScreenSharing,
         onStateUpdate: widget.onStateUpdate,
         zoom: widget.zoom,
-        localUserId: localUserId??"",
+        localUserId: localUserId ?? "",
       );
     }
 
     final otherUsers = widget.users
         .where((user) => user.userId != activeSpeaker?.userId)
         .toList();
-
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -181,7 +180,6 @@ class _TabViewSingleState extends State<TabViewSingle> {
                   userName: activeSpeaker?.userName ?? "",
                   position: 16,
                 ),
-
                 if (otherUsers.isNotEmpty)
                   Positioned(
                     top: 16,
@@ -190,7 +188,7 @@ class _TabViewSingleState extends State<TabViewSingle> {
                       otherUsers: otherUsers,
                       onTap: _handleManualSwitch,
                       switchCamera: switchCamera,
-                      localUserId: localUserId??"",
+                      localUserId: localUserId ?? "",
                     ),
                   ),
               ],

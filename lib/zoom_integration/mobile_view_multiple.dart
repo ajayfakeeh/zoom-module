@@ -15,7 +15,8 @@ class MobileViewMultiple extends StatefulWidget {
   final bool isScreenSharing;
   final VoidCallback onLeaveSession;
   final Function(bool, bool, bool) onStateUpdate;
-  final ZoomVideoSdk zoom; // Add this
+  final ZoomVideoSdk zoom;
+
   const MobileViewMultiple({
     super.key,
     required this.users,
@@ -25,7 +26,7 @@ class MobileViewMultiple extends StatefulWidget {
     required this.isScreenSharing,
     required this.onLeaveSession,
     required this.onStateUpdate,
-    required this.zoom, // Add this
+    required this.zoom,
   });
 
   @override

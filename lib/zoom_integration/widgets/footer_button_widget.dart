@@ -44,6 +44,15 @@ class _FooterButtonWidgetState extends State<FooterButtonWidget> {
     currentMuted = widget.isMuted;
     currentVideoOn = widget.isVideoOn;
     currentScreenSharing = widget.isScreenSharing;
+    // unreadMessages= widget.unreadMessages;
+    // Subscribe to chat updates from the ChatManager
+    ChatManager().setMessageCallback(_onNewMessage);
+  }
+
+  void _onNewMessage() {
+    setState(() {
+      unreadMessages = ChatManager().unreadCount;
+    });
   }
 
   @override
@@ -72,14 +81,13 @@ class _FooterButtonWidgetState extends State<FooterButtonWidget> {
             child: footerButton(
               icon: Icons.chat,
               text: "Chat",
-              onTap: () {
-                // Reset unread count when chat is opened
+              onTap: () async {
                 ChatManager().clearUnreadCount();
                 setState(() {
                   unreadMessages = 0;
                 });
-                showModalBottomSheet(
-                  backgroundColor: Colors.white,
+                await showModalBottomSheet(
+                  backgroundColor: Colors.black,
                   shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(20),
@@ -89,6 +97,8 @@ class _FooterButtonWidgetState extends State<FooterButtonWidget> {
                   isScrollControlled: true,
                   builder: (context) => ChatSheet(zoom: zoom),
                 );
+
+                ChatManager().setMessageCallback(_onNewMessage);
               },
               showNotification: unreadMessages > 0,
             ),
@@ -156,9 +166,9 @@ class _FooterButtonWidgetState extends State<FooterButtonWidget> {
           ),
           if (showNotification)
             Positioned(
-              right: 0,
               top: -5, // Adjust to prevent overlap with button edge
               child: Container(
+                margin: EdgeInsets.only(left: aspectRatio > .5?10:5),
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: Colors.red,

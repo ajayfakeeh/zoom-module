@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class LoadingWidget extends StatelessWidget {
@@ -6,11 +7,18 @@ class LoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    double aspectRatio = screenWidth / screenHeight;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        CircularProgressIndicator(color: Colors.white),
+        CupertinoActivityIndicator(
+          color: Colors.white,
+          radius: aspectRatio > 0.5 ? 15.0 : 10.0,
+        ),
         SizedBox(height: 16),
         Text(
           text,

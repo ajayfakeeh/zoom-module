@@ -5,8 +5,6 @@ import 'package:zoom_module/zoom_integration/mobile_view_multiple.dart';
 import 'package:zoom_module/zoom_integration/widgets/footer_button_widget.dart';
 import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
-import 'package:zoom_module/zoom_integration/widgets/control_bar.dart';
-import 'package:zoom_module/zoom_integration/widgets/zoom_app_bar.dart';
 
 class MobileViewSingle extends StatefulWidget {
   final List<ZoomVideoSdkUser> users;
@@ -167,7 +165,7 @@ class _MobileViewSingleState extends State<MobileViewSingle> {
                         otherUsers: otherUsers,
                         onTap: _handleManualSwitch,
                         switchCamera: switchCamera,
-                        localUserId: localUserId??"",
+                        localUserId: localUserId ?? "",
                       ),
                     ),
                 ],

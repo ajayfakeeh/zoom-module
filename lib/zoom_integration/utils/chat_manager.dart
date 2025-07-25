@@ -10,7 +10,7 @@ class ChatManager {
   factory ChatManager() => _instance;
   ChatManager._internal();
 
-  static final List<ChatMessage> _messages = [];
+  final List<ChatMessage> _messages = [];
   StreamSubscription? _chatSubscription;
   String? _myUserId;
   VoidCallback? _onMessageReceived;
@@ -19,28 +19,31 @@ class ChatManager {
   List<ChatMessage> get messages => _messages;
   int get unreadCount => _unreadCount;
 
+  bool get isInitialized => _chatSubscription != null;
+
+  /// Initialize the ChatManager and listen to incoming messages
   void initialize(String myUserId, ZoomVideoSdkEventListener listener) {
     _myUserId = myUserId;
     _chatSubscription?.cancel();
-    _chatSubscription = listener.addListener(
-      EventType.onChatNewMessageNotify,
-      _handleNewMessage,
-    );
+
+    try {
+      _chatSubscription = listener.addListener(
+        EventType.onChatNewMessageNotify,
+        _handleNewMessage,
+      );
+      debugPrint('✅ ChatManager initialized with userId: $_myUserId');
+    } catch (e) {
+      debugPrint('❌ Failed to initialize ChatManager: $e');
+    }
   }
 
-  // void initialize(String myUserId) {
-  //   _myUserId = myUserId;
-  //   _chatSubscription?.cancel();
-  //   _chatSubscription = ZoomVideoSdkEventListener().addListener(
-  //     EventType.onChatNewMessageNotify,
-  //     _handleNewMessage,
-  //   );
-  // }
-
+  /// Set the UI callback (e.g., footer badge update)
   void setMessageCallback(VoidCallback? callback) {
     _onMessageReceived = callback;
+    debugPrint('📩 ChatManager callback set: $callback');
   }
 
+  /// Handle incoming chat messages
   void _handleNewMessage(dynamic data) {
     try {
       final messageData = data is String ? jsonDecode(data) : data;
@@ -57,12 +60,12 @@ class ChatManager {
           final senderUserMap = jsonDecode(decodedString);
           senderId = senderUserMap['userId'] ?? '';
         } catch (e) {
-          debugPrint("Error parsing sender: $e");
+          debugPrint("⚠️ Error parsing senderUser: $e");
         }
       }
 
-      final content = messageMap['content'] ?? 'No message';
       final isMe = senderId == _myUserId;
+      final content = messageMap['content'] ?? 'No message';
 
       try {
         final jsonContent = jsonDecode(content);
@@ -73,26 +76,43 @@ class ChatManager {
           filePath: jsonContent['file_path'] ?? '',
         ));
       } catch (e) {
+        debugPrint("⚠️ Could not parse JSON content, storing raw.");
         _messages.add(ChatMessage(content: content, isMe: isMe));
       }
 
       if (!isMe) {
         _unreadCount++;
+        debugPrint('🔔 New message received from other user. Unread count: $_unreadCount');
+      } else {
+        debugPrint('📨 Message sent by self, not counted as unread.');
       }
+
       _onMessageReceived?.call();
     } catch (e) {
-      debugPrint("Error handling message: $e");
+      debugPrint("❌ Error handling incoming chat message: $e");
     }
   }
 
+  /// Call this when chat is opened to clear the badge
   void clearUnreadCount() {
     _unreadCount = 0;
+    debugPrint('🔄 Unread count cleared.');
+    // _onMessageReceived?.call();
   }
 
+  /// Call only when session ends
   void dispose() {
-    _chatSubscription?.cancel();
-    _chatSubscription = null;
-    _messages.clear();
-    _unreadCount = 0;
+    try {
+      _chatSubscription?.cancel();
+      _chatSubscription = null;
+      _messages.clear();
+      _unreadCount = 0;
+      _onMessageReceived = null;
+      _myUserId = null;
+
+      debugPrint('🧹 ChatManager disposed after session end.');
+    } catch (e) {
+      debugPrint('❌ Error during ChatManager disposal: $e');
+    }
   }
 }
