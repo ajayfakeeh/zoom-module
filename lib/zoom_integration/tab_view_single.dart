@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
 import 'package:zoom_module/zoom_integration/tab_view_multiple.dart';
-import 'package:zoom_module/zoom_integration/widgets/control_bar.dart';
 import 'package:zoom_module/zoom_integration/widgets/floating_user_widget.dart';
 import 'package:zoom_module/zoom_integration/widgets/footer_button_widget.dart';
 import 'package:zoom_module/zoom_integration/widgets/user_name_bottom.dart';
@@ -182,7 +181,7 @@ class _TabViewSingleState extends State<TabViewSingle> {
                 ),
                 if (otherUsers.isNotEmpty)
                   Positioned(
-                    top: 16,
+                    bottom: 16,
                     right: 16,
                     child: FloatingUserWidget(
                       otherUsers: otherUsers,

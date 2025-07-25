@@ -17,7 +17,7 @@ class LoadingWidget extends StatelessWidget {
       children: [
         CupertinoActivityIndicator(
           color: Colors.white,
-          radius: aspectRatio > 0.5 ? 15.0 : 10.0,
+          radius: aspectRatio > 0.5 ? 20.0 : 10.0,
         ),
         SizedBox(height: 16),
         Text(

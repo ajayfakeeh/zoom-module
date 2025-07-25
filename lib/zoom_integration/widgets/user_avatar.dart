@@ -31,9 +31,7 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double avatarSize = isMainView
-        ? 80
-        : (isTabView == true ? 30 : 40);
+    final double avatarSize = isMainView ? 80 : (isTabView == true ? 30 : 40);
 
     final initial = userName.isNotEmpty ? userName[0].toUpperCase() : '?';
     final bgColor = _getRandomColor(userName);

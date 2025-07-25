@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
-import 'package:zoom_module/zoom_integration/widgets/circle_icon_button.dart';
-import 'package:zoom_module/zoom_integration/widgets/control_bar.dart';
 import 'package:zoom_module/zoom_integration/widgets/footer_button_widget.dart';
 import 'package:zoom_module/zoom_integration/widgets/user_name_bottom.dart';
 import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
@@ -79,18 +77,26 @@ class _TabViewMultipleState extends State<TabViewMultiple> {
                 Positioned(
                   right: 40,
                   top: 0,
-                  child: CircleIconButton(
-                    icon: isListVisible
-                        ? Icons.chevron_right
-                        : Icons.chevron_left,
-                    iconColor: Colors.blue,
-                    backgroundColor: Colors.white,
-                    tooltip: "Hide/Show",
-                    onPressed: () {
+                  child: GestureDetector(
+                    onTap: () {
                       setState(() {
                         isListVisible = !isListVisible;
                       });
                     },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        isListVisible
+                            ? Icons.chevron_right
+                            : Icons.chevron_left,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
                   ),
                 ),
                 Positioned(

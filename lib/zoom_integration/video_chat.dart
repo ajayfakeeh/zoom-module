@@ -49,7 +49,6 @@ class _VideochatState extends State<Videochat> {
     super.initState();
     if (Platform.isAndroid) _checkPermissions();
 
-
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -64,7 +63,6 @@ class _VideochatState extends State<Videochat> {
     _leaveSession();
     super.dispose();
   }
-
 
   Future<void> _checkPermissions() async {
     await Permission.camera.request();
@@ -131,7 +129,6 @@ class _VideochatState extends State<Videochat> {
       debugPrint('Users updated in UI: ${users.length}');
     });
   }
-
 
   Future<void> _handleVideoChange(dynamic data) async {
     if (!mounted) return;

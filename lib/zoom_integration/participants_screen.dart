@@ -6,21 +6,32 @@ class ParticipantsScreen extends StatelessWidget {
 
   const ParticipantsScreen({super.key, required this.participants});
 
+  static const double _tileHeight = 70; // Approximate height per user
+  static const double _maxHeight = 500; // Max height in pixels
+
   @override
   Widget build(BuildContext context) {
+    // Calculate total height based on number of participants + 100 for header
+    final double calculatedHeight = (participants.length * _tileHeight) + 100;
+    final double finalHeight =
+        calculatedHeight > _maxHeight ? _maxHeight : calculatedHeight;
+
     return SafeArea(
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.95,
-        padding: EdgeInsets.fromLTRB(12, 0, 12, 12),
-        color: Colors.black,
+        height: finalHeight,
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        decoration: const BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
         child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Text(
-                "Participants",
-                style: TextStyle(
-                  fontSize: 24,
+                "Participants(${participants.length})",
+                style: const TextStyle(
+                  fontSize: 22,
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
@@ -38,15 +49,15 @@ class ParticipantsScreen extends StatelessWidget {
                         participant.userName.isNotEmpty
                             ? participant.userName.substring(0, 1)
                             : "U",
-                        style: TextStyle(color: Colors.white),
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
                     title: Text(
                       participant.userName,
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                     ),
                     subtitle: participant.isHost
-                        ? Text(
+                        ? const Text(
                             "Host",
                             style: TextStyle(
                               color: Colors.greenAccent,
@@ -54,24 +65,38 @@ class ParticipantsScreen extends StatelessWidget {
                             ),
                           )
                         : null,
-                    trailing: FutureBuilder<bool>(
-                      future: _getMuteStatus(
-                          participant), // Future to get mute status
+                    trailing: FutureBuilder(
+                      future: _getStatuses(participant),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return CircularProgressIndicator(); // Show loading until the result is ready
+                          return const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
                         }
 
                         if (snapshot.hasError) {
-                          return Icon(Icons.error, color: Colors.red);
+                          return const Icon(Icons.error, color: Colors.red);
                         }
 
-                        final isMuted = snapshot.data ?? true;
+                        final isMuted = snapshot.data?['muted'] ?? true;
+                        final isVideoOn = snapshot.data?['videoOn'] ?? false;
 
-                        return Icon(
-                          isMuted ? Icons.mic_off : Icons.mic,
-                          color: isMuted ? Colors.red : Colors.green,
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isMuted ? Icons.mic_off : Icons.mic,
+                              color: isMuted ? Colors.red : Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              isVideoOn ? Icons.videocam : Icons.videocam_off,
+                              color: isVideoOn ? Colors.green : Colors.red,
+                            ),
+                          ],
                         );
                       },
                     ),
@@ -86,11 +111,21 @@ class ParticipantsScreen extends StatelessWidget {
     );
   }
 
-  // Helper method to fetch mute status (async)
-  Future<bool> _getMuteStatus(ZoomVideoSdkUser participant) async {
-    if (participant.audioStatus == null) {
-      return true; // Default to muted if no audio status is available
+  Future<Map<String, bool>> _getStatuses(ZoomVideoSdkUser participant) async {
+    bool muted = true;
+    bool videoOn = false;
+
+    if (participant.audioStatus != null) {
+      muted = await participant.audioStatus!.isMuted();
     }
-    return await participant.audioStatus!.isMuted();
+
+    if (participant.videoStatus != null) {
+      videoOn = await participant.videoStatus!.isOn();
+    }
+
+    return {
+      'muted': muted,
+      'videoOn': videoOn,
+    };
   }
 }

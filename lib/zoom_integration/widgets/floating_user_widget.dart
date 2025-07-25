@@ -22,7 +22,7 @@ class FloatingUserWidget extends StatelessWidget {
         final screenWidth = MediaQuery.of(context).size.width;
         final isTablet = screenWidth > 600;
 
-        final tileWidth = isTablet ? 250.0 : 110.0;
+        final tileWidth = isTablet ? 220.0 : 110.0;
         final aspectRatio = 9 / 16;
 
         return Column(
@@ -41,6 +41,7 @@ class FloatingUserWidget extends StatelessWidget {
                   isMainView: false,
                   onTap: () => onTap(user),
                   onCameraFlip: switchCamera,
+                  borderRadius: 16,
                   isLocalUser: user.userId == localUserId,
                 ),
               ),

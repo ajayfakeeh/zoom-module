@@ -144,7 +144,6 @@ class _MobileViewSingleState extends State<MobileViewSingle> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      // appBar: ZoomAppBar(leaveSession: widget.onLeaveSession),
       body: Column(
         children: [
           if (activeSpeaker != null)
@@ -159,7 +158,7 @@ class _MobileViewSingleState extends State<MobileViewSingle> {
                   ),
                   if (otherUsers.isNotEmpty)
                     Positioned(
-                      top: 16,
+                      bottom: 16,
                       right: 16,
                       child: FloatingUserWidget(
                         otherUsers: otherUsers,

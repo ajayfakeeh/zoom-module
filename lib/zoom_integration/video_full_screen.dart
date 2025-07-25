@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
-import 'package:zoom_module/zoom_integration/widgets/circle_icon_button.dart';
 import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
 
 class VideoFullScreen extends StatefulWidget {
@@ -22,7 +21,7 @@ class VideoFullScreen extends StatefulWidget {
 class _VideoFullScreenState extends State<VideoFullScreen> {
   @override
   void initState() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
@@ -38,30 +37,34 @@ class _VideoFullScreenState extends State<VideoFullScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            VideoWidget(
-              user: widget.user,
-              isMainView: true,
-              onCameraFlip: widget.switchCamera,
-              isLocalUser: widget.user.userId == widget.localUserId,
-            ),
-            Positioned(
-              top: 16,
-              right: 16,
-              child: CircleIconButton(
-                icon: Icons.fullscreen_exit,
-                iconColor: Colors.black,
-                backgroundColor: Colors.white,
-                tooltip: "Exit Fullscreen",
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+      body: Stack(
+        children: [
+          VideoWidget(
+            user: widget.user,
+            isMainView: true,
+            onCameraFlip: widget.switchCamera,
+            isLocalUser: widget.user.userId == widget.localUserId,
+          ),
+          Positioned(
+            top: 16,
+            right: 16,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(6),
+                child: const Icon(
+                  Icons.fullscreen_exit,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

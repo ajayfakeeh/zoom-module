@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:zoom_module/zoom_integration/chat_sheet.dart';
 import 'package:zoom_module/zoom_integration/participants_screen.dart';
 import 'package:zoom_module/zoom_integration/utils/chat_manager.dart';
+import 'package:zoom_module/zoom_integration/widgets/zoom_info_bottom_sheet.dart';
 
 class FooterButtonWidget extends StatefulWidget {
   final bool isMuted;
@@ -67,6 +68,7 @@ class _FooterButtonWidgetState extends State<FooterButtonWidget> {
             child: footerButton(
               icon: currentMuted ? Icons.mic_off : Icons.mic,
               text: currentMuted ? "Unmute" : "Mute",
+              buttonColor: currentMuted ? Colors.red : Colors.white,
               onTap: toggleAudio,
             ),
           ),
@@ -74,6 +76,7 @@ class _FooterButtonWidgetState extends State<FooterButtonWidget> {
             child: footerButton(
               icon: currentVideoOn ? Icons.videocam : Icons.videocam_off,
               text: currentVideoOn ? "Stop Video" : "Start Video",
+              buttonColor: currentVideoOn ? Colors.white : Colors.red,
               onTap: toggleVideo,
             ),
           ),
@@ -105,37 +108,86 @@ class _FooterButtonWidgetState extends State<FooterButtonWidget> {
           ),
           Expanded(
             child: footerButton(
-              icon: Icons.people_sharp,
-              text: "Participants",
-              onTap: () {
-                showModalBottomSheet(
-                  backgroundColor: Colors.black,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (context) =>
-                      ParticipantsScreen(participants: widget.users),
-                );
-              },
-            ),
-          ),
-          // Expanded(
-          //   child: footerButton(
-          //     icon: Icons.screen_share,
-          //     text: "Share Screen",
-          //     onTap: toggleScreenShare,
-          //   ),
-          // ),
-          Expanded(
-            child: footerButton(
               icon: Icons.call_end,
               text: "Leave",
               onTap: widget.onLeaveSession,
               buttonColor: Colors.red,
+            ),
+          ),
+          Expanded(
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                popupMenuTheme: PopupMenuThemeData(
+                  color: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10), // ⬅️ Radius 10
+                  ),
+                  textStyle: const TextStyle(color: Colors.white),
+                ),
+              ),
+              child: PopupMenuButton<String>(
+                icon: const Icon(Icons.more_horiz, color: Colors.white),
+                position: PopupMenuPosition.under,
+                offset: const Offset(-50, -150),
+                onSelected: (value) async {
+                  if (value == "Participants") {
+                    showModalBottomSheet(
+                      backgroundColor: Colors.black,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
+                      ),
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (context) {
+                        return ParticipantsScreen(participants: widget.users);
+                      },
+                    );
+                  } else if (value == "Info") {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      isScrollControlled: true,
+                      builder: (context) => ZoomInfoBottomSheet(zoom: zoom),
+                    );
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'Participants',
+                    child: Row(
+                      children: const [
+                        Icon(Icons.groups, color: Colors.white),
+                        SizedBox(width: 10),
+                        Text(
+                          'Participants',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'Info',
+                    child: Row(
+                      children: const [
+                        Icon(Icons.info_outline, color: Colors.white),
+                        SizedBox(width: 10),
+                        Text(
+                          'Session Info',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -168,7 +220,7 @@ class _FooterButtonWidgetState extends State<FooterButtonWidget> {
             Positioned(
               top: -5, // Adjust to prevent overlap with button edge
               child: Container(
-                margin: EdgeInsets.only(left: aspectRatio > .5?10:5),
+                margin: EdgeInsets.only(left: aspectRatio > .5 ? 10 : 5),
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: Colors.red,

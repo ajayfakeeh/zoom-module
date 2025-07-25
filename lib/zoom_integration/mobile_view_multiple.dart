@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_videosdk/native/zoom_videosdk_user.dart';
 import 'package:zoom_module/zoom_integration/video_full_screen.dart';
-import 'package:zoom_module/zoom_integration/widgets/circle_icon_button.dart';
 import 'package:zoom_module/zoom_integration/widgets/footer_button_widget.dart';
 import 'package:zoom_module/zoom_integration/widgets/user_name_bottom.dart';
 import 'package:zoom_module/zoom_integration/widgets/video_widget.dart';
@@ -75,21 +74,31 @@ class _MobileViewMultipleState extends State<MobileViewMultiple> {
                   Positioned(
                     top: 16,
                     right: 16,
-                    child: CircleIconButton(
-                      icon: Icons.fullscreen,
-                      iconColor: Colors.black,
-                      backgroundColor: Colors.white,
-                      tooltip: "Fullscreen",
-                      onPressed: () {
+                    child: GestureDetector(
+                      onTap: () {
                         Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => VideoFullScreen(
-                                      user: selectedUser!,
-                                      localUserId: widget.localUserId,
-                                      switchCamera: switchCamera,
-                                    )));
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => VideoFullScreen(
+                              user: selectedUser!,
+                              localUserId: widget.localUserId,
+                              switchCamera: switchCamera,
+                            ),
+                          ),
+                        );
                       },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        child: const Icon(
+                          Icons.fullscreen,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
                     ),
                   ),
               ],

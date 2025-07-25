@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 class UserNameBottom extends StatelessWidget {
   final String userName;
   final double position;
-  const UserNameBottom({super.key, required this.userName, required this.position});
+  const UserNameBottom(
+      {super.key, required this.userName, required this.position});
 
   @override
   Widget build(BuildContext context) {

@@ -29,7 +29,8 @@ class VideoWidget extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.black,
-        borderRadius: isMainView ? null : BorderRadius.circular(borderRadius ?? 8),
+        borderRadius:
+            isMainView ? null : BorderRadius.circular(borderRadius ?? 8),
         border: !isMainView ? Border.all(color: Colors.white, width: 2) : null,
       ),
       child: ClipRRect(
@@ -53,8 +54,8 @@ class VideoWidget extends StatelessWidget {
                       children: [
                         UserAvatar(
                           userName: user.userName,
-                          isMainView:isMainView,
-                          isTabView:isTabView,
+                          isMainView: isMainView,
+                          isTabView: isTabView,
                         ),
                         // Mute icon for avatar view - only for non-main views
                         if (!isMainView)
@@ -66,7 +67,7 @@ class VideoWidget extends StatelessWidget {
                               builder: (context, snapshot) {
                                 final isMuted = snapshot.data ?? true;
                                 if (!isMuted) return const SizedBox.shrink();
-                                
+
                                 return Container(
                                   decoration: BoxDecoration(
                                     color: Colors.red.withOpacity(0.8),
@@ -114,7 +115,7 @@ class VideoWidget extends StatelessWidget {
                           builder: (context, snapshot) {
                             final isMuted = snapshot.data ?? true;
                             if (!isMuted) return const SizedBox.shrink();
-                            
+
                             return Container(
                               decoration: BoxDecoration(
                                 color: Colors.red.withOpacity(0.8),
