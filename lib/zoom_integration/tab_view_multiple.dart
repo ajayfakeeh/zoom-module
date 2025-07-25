@@ -164,7 +164,7 @@ class _TabViewMultipleState extends State<TabViewMultiple> {
                 });
               },
               onCameraFlip: switchCamera,
-              isLocalUser: widget.users[index] == widget.localUserId,
+              isLocalUser: widget.users[index].userId == widget.localUserId,
             ),
           ),
           UserNameBottom(userName: widget.users[index].userName, position: 4),

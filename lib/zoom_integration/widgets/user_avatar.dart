@@ -6,11 +6,11 @@ class UserAvatar extends StatelessWidget {
   final bool? isTabView;
 
   const UserAvatar({
-    Key? key,
+    super.key,
     required this.userName,
     this.isMainView = false,
     this.isTabView,
-  }) : super(key: key);
+  });
 
   static final List<Color> _colors = [
     Colors.redAccent.shade200,
